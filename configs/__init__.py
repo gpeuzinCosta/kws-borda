@@ -44,10 +44,20 @@ def _achatar(cfg):
     return plano
 
 
+#Configurações de MFCC prontas. Uso: carregar_config("dscnn", **PRESETS_MFCC["hello_edge"])
+PRESETS_MFCC = {
+    #Validada na POC: 40 coeficientes x 101 janelas
+    "padrao": dict(n_mfcc=40, janela_ms=30, passo_ms=10, n_mels=40, center=True),
+    #Igual ao artigo Hello Edge (e ao notebook do Luciano): 10 coeficientes x 49 janelas, entrada 8x menor
+    "hello_edge": dict(n_mfcc=10, janela_ms=40, passo_ms=20, n_mels=40, center=False),
+}
+
+
 def carregar_config(modelo, pasta=PASTA_CONFIGS, **sobrescritas):
     """Carrega configs/base.yaml + configs/<modelo>.yaml e devolve o dicionário `hyperparameters`.
 
-    Qualquer chave pode ser sobrescrita na chamada, ex.: carregar_config("mlp", epocas=1).
+    Qualquer chave pode ser sobrescrita na chamada, ex.: carregar_config("mlp", epocas=1, tarefa="gsc12").
+    n_classes e n_frames são calculados a partir da tarefa e do MFCC.
     """
     pasta = Path(pasta)
     base = yaml.safe_load(open(pasta / "base.yaml"))
@@ -56,7 +66,17 @@ def carregar_config(modelo, pasta=PASTA_CONFIGS, **sobrescritas):
     for k, v in sobrescritas.items():
         if v is not None:
             hp[k] = v
+
+    from dados.mfcc import calcular_n_frames
+    from dados.speech_commands import classes_da_tarefa
+    hp["n_classes"] = len(classes_da_tarefa(hp["tarefa"]))
+    hp["n_frames"] = calcular_n_frames(hp)
     return hp
+
+
+def rotulo_experimento(hp):
+    """Nome curto da configuração, ex.: 'gsc12_10x49_por_amostra'. Separa runs e resultados de setups diferentes."""
+    return f"{hp['tarefa']}_{hp['n_mfcc']}x{hp['n_frames']}_{hp.get('normalizacao', 'global')}"
 
 
 def escolher_device():

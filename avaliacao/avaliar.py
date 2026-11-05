@@ -15,7 +15,7 @@ import argparse
 
 import pandas as pd
 
-from configs import carregar_config
+from configs import PRESETS_MFCC, carregar_config
 from dados import ExtratorMFCC
 from avaliacao import custo, medir_latencia
 from modelos import criar_modelo, esta_implementado, listar_modelos
@@ -25,6 +25,7 @@ if __name__ == "__main__":
     ap.add_argument("--modelos", nargs="+", default=[m["nome"] for m in listar_modelos()])
     ap.add_argument("--librosa", action="store_true", help="mede também o MFCC com librosa")
     ap.add_argument("--repeticoes", type=int, default=300)
+    ap.add_argument("--mfcc", choices=list(PRESETS_MFCC), help="preset de MFCC (padrão: o do base.yaml)")
     args = ap.parse_args()
 
     linhas = []
@@ -32,7 +33,7 @@ if __name__ == "__main__":
         if not esta_implementado(nome):
             print(f"[pulando] {nome}: ainda não implementado")
             continue
-        hp = carregar_config(nome)
+        hp = carregar_config(nome, **PRESETS_MFCC.get(args.mfcc, {}))
         model = criar_modelo(nome, hp)
         linhas.append(dict(modelo=nome, **custo(model),
                            **medir_latencia(model, ExtratorMFCC.de_hparams(hp), threads=hp["latencia_threads"],

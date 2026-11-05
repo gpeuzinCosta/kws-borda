@@ -25,27 +25,42 @@ class ExtratorMFCC(torch.nn.Module):
     É um nn.Module para poder ser medido (latência) e movido de device igual a uma rede.
     """
 
-    def __init__(self, n_mfcc=40, janela_ms=30, passo_ms=10, n_mels=40, f_min=20, f_max=7600, sample_rate=SR):
+    def __init__(self, n_mfcc=40, janela_ms=30, passo_ms=10, n_mels=40, f_min=20, f_max=7600, sample_rate=SR,
+                 center=True):
         super().__init__()
         n_fft = int(sample_rate * janela_ms / 1000)    #30 ms -> 480 amostras
         hop = int(sample_rate * passo_ms / 1000)       #10 ms -> 160 amostras
         self.mfcc = torchaudio.transforms.MFCC(
             sample_rate=sample_rate, n_mfcc=n_mfcc,
             melkwargs=dict(n_fft=n_fft, win_length=n_fft, hop_length=hop,
-                           n_mels=n_mels, f_min=f_min, f_max=f_max),
+                           n_mels=n_mels, f_min=f_min, f_max=f_max, center=center),
         )
-        self.config = dict(n_mfcc=n_mfcc, n_fft=n_fft, hop=hop, n_mels=n_mels, f_min=f_min, f_max=f_max)
+        self.config = dict(n_mfcc=n_mfcc, n_fft=n_fft, hop=hop, n_mels=n_mels, f_min=f_min, f_max=f_max,
+                           center=center)
 
     @classmethod
     def de_hparams(cls, hp):
         """Cria o extrator a partir do dicionário de hiperparâmetros."""
         return cls(n_mfcc=hp["n_mfcc"], janela_ms=hp["janela_ms"], passo_ms=hp["passo_ms"],
-                   n_mels=hp["n_mels"], f_min=hp["f_min"], f_max=hp["f_max"], sample_rate=hp["sample_rate"])
+                   n_mels=hp["n_mels"], f_min=hp["f_min"], f_max=hp["f_max"], sample_rate=hp["sample_rate"],
+                   center=hp.get("center", True))
 
     def forward(self, wav):
         if wav.dim() == 1:
             wav = wav.unsqueeze(0)
         return self.mfcc(wav)
+
+
+def calcular_n_frames(hp):
+    """Nº de janelas do MFCC para 1 s de áudio.
+
+    center=True (padrão do torchaudio): completa as bordas -> 1 + N // passo         (16000/160 -> 101)
+    center=False (Hello Edge):          só janelas inteiras -> 1 + (N - janela) // passo  (640/320 -> 49)
+    """
+    n = int(hp["sample_rate"] * hp["duracao_s"])
+    n_fft = int(hp["sample_rate"] * hp["janela_ms"] / 1000)
+    hop = int(hp["sample_rate"] * hp["passo_ms"] / 1000)
+    return 1 + n // hop if hp.get("center", True) else 1 + (n - n_fft) // hop
 
 
 def fix_length(wav, n=N_AMOSTRAS):

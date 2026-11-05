@@ -79,10 +79,22 @@ pytest                                                          # testes rápido
 python treino/treinar.py --modelo mlp --dados-falsos --epocas 1 # pipeline completo com dados sintéticos
 python dados/baixar.py --dataset gsc                            # GSC v2 em data/gsc
 python treino/treinar.py --modelo mlp                           # treino de verdade
+python treino/treinar.py --modelo mlp --tarefa gsc12 --mfcc hello_edge --normalizacao por_amostra
 python avaliacao/avaliar.py                                     # parâmetros, MACs e latência de todos
 ```
 
 Sempre rode a partir da **raiz** do repositório.
+
+### Opções do experimento (`configs/base.yaml`, painel do notebook ou argumentos do `treinar.py`)
+
+| Opção | Valores | O que muda |
+|---|---|---|
+| `tarefa` | `gsc35` (padrão) · `gsc12` | 35 palavras, ou 10 comandos + `_unknown_` + `_silence_` (padrão dos artigos) |
+| MFCC | `padrao` (40×101) · `hello_edge` (10×49) | tamanho da entrada e custo do pré-processamento |
+| `normalizacao` | `global` (padrão) · `por_amostra` | estatísticas do treino, ou de cada áudio |
+
+A tarefa de 12 classes, o MFCC 10×49 e a normalização por amostra vieram do notebook do Luciano
+(`notebooks/experimentos/Projeto_MLP.ipynb`). Cada combinação tem os próprios caches e treinos salvos.
 
 ## Como implementar um modelo
 

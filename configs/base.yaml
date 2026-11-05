@@ -4,15 +4,23 @@
 
 dados:
   dataset: speech_commands_v2
-  n_classes: 35             # as 35 palavras do GSC v2 (necessário para dígitos do AudioMNIST e mapeamento PT->EN)
+  # gsc35: as 35 palavras (necessária para AudioMNIST e MSWC-pt)
+  # gsc12: 10 comandos + _unknown_ + _silence_ (padrão Hello Edge/KWT, comparável aos artigos)
+  # n_classes é calculado a partir da tarefa
+  tarefa: gsc35
   sample_rate: 16000
   duracao_s: 1.0
-  n_mfcc: 40                # 40 coeficientes  -> entrada (B, 40, 101)
+  # MFCC "padrao" (POC): 40 coef, janela 30 ms, passo 10 ms, center -> entrada (B, 40, 101)
+  # Preset "hello_edge" (configs.PRESETS_MFCC): 10 coef, 40 ms, 20 ms, sem center -> (B, 10, 49)
+  n_mfcc: 40
   janela_ms: 30
   passo_ms: 10
+  center: true
   n_mels: 40
   f_min: 20
   f_max: 7600
+  # global: média/desvio por coeficiente medidos no TREINO | por_amostra: cada áudio pela sua própria média/desvio
+  normalizacao: global
   spec_augment: true        # máscara de tempo e de coeficientes, igual para todos
 
 treino:

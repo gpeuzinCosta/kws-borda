@@ -15,8 +15,9 @@ def contar_parametros(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def contar_macs(model, n_mfcc=40, n_frames=101):
-    """MACs por inferência de 1 amostra."""
+def contar_macs(model, n_mfcc=None, n_frames=None):
+    """MACs por inferência de 1 amostra. O formato vem de model.formato_entrada (criar_modelo preenche)."""
+    n_mfcc, n_frames = (n_mfcc, n_frames) if n_mfcc else getattr(model, "formato_entrada", (40, 101))
     estava_treinando = model.training
     model.train()   #desliga o fast path do Transformer (ver docstring); batch 2 por causa do BatchNorm
     with FlopCounterMode(display=False) as contador, torch.no_grad():
@@ -25,7 +26,7 @@ def contar_macs(model, n_mfcc=40, n_frames=101):
     return contador.get_total_flops() // 2 // 2     #/2 pelo batch, /2 de FLOPs para MACs
 
 
-def custo(model, n_mfcc=40, n_frames=101):
+def custo(model, n_mfcc=None, n_frames=None):
     """Parâmetros, tamanho fp32/int8 (KB) e MACs por inferência."""
     params = contar_parametros(model)
     return dict(params=params, kb_fp32=params * 4 / 1024, kb_int8=params / 1024,

@@ -12,7 +12,7 @@ from pathlib import Path
 import torch
 import yaml
 
-from configs import escolher_device
+from configs import escolher_device, rotulo_experimento
 
 
 def fixar_semente(seed):
@@ -129,7 +129,7 @@ def treinar(model, loaders, hp, seed=0, pasta_runs=None, device=None, verbose=Tr
 
 
 def _salvar_run(model, hp, hist, seed, pasta_runs):
-    pasta = Path(pasta_runs) / f"{hp['modelo']}_s{seed}_{datetime.now():%Y%m%d-%H%M%S}"
+    pasta = Path(pasta_runs) / f"{hp['modelo']}_{rotulo_experimento(hp)}_s{seed}_{datetime.now():%Y%m%d-%H%M%S}"
     pasta.mkdir(parents=True, exist_ok=True)
     hist["pasta"] = str(pasta)
     yaml.safe_dump(dict(hp, seed=seed), open(pasta / "config.yaml", "w"), allow_unicode=True)
@@ -138,9 +138,9 @@ def _salvar_run(model, hp, hist, seed, pasta_runs):
     return pasta
 
 
-def carregar_run(pasta_runs, nome_modelo, seed):
-    """Procura o run mais recente de <modelo>_s<seed>. Devolve (state_dict, hist, hp) ou None."""
-    candidatos = sorted(Path(pasta_runs).glob(f"{nome_modelo}_s{seed}_*"))
+def carregar_run(pasta_runs, hp, seed):
+    """Procura o run mais recente do mesmo modelo, tarefa, MFCC e seed. Devolve (state_dict, hist, hp) ou None."""
+    candidatos = sorted(Path(pasta_runs).glob(f"{hp['modelo']}_{rotulo_experimento(hp)}_s{seed}_*"))
     if not candidatos:
         return None
     pasta = candidatos[-1]

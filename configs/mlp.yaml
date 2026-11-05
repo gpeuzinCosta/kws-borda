@@ -1,6 +1,9 @@
-# MLP — baseline: achata o MFCC (40x101) e passa por camadas densas.
+# MLP — baseline: achata o MFCC e passa por camadas densas.
+# Versão do Luciano (notebooks/experimentos/Projeto_MLP.ipynb, 79,6% val em gsc12 + MFCC hello_edge):
+#   hidden: 128, n_camadas: 3, dropout: 0.1, batchnorm: false
 modelo:
   nome: mlp
   hidden: 64
   n_camadas: 2
   dropout: 0.1
+  batchnorm: true

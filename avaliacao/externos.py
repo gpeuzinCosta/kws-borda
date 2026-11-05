@@ -9,18 +9,22 @@ import torch
 
 from dados.mfcc import ExtratorMFCC
 from dados.ruido import misturar_ruido
+from dados.speech_commands import normalizar
 
 
 @torch.no_grad()
 def logits_de_wavs(model, wavs, extrator, media, desvio, batch=256):
-    """Lista de waveforms (N_AMOSTRAS,) -> logits (len(wavs), n_classes)."""
+    """Lista de waveforms (N_AMOSTRAS,) -> logits (len(wavs), n_classes).
+
+    media/desvio = None quando a normalização é por amostra.
+    """
     device = next(model.parameters()).device
     extrator = extrator.to(device)
     model.eval()
     saidas = []
     for i in range(0, len(wavs), batch):
         x = extrator(torch.stack(wavs[i:i + batch]).to(device))
-        x = (x - media.to(device)) / desvio.to(device)
+        x = normalizar(x, None if media is None else media.to(device), None if desvio is None else desvio.to(device))
         saidas.append(model(x).cpu())
     return torch.cat(saidas)
 

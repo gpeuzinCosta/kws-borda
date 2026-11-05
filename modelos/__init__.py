@@ -4,6 +4,7 @@ Contrato de TODO modelo:
     - classe torch.nn.Module decorada com @registrar_modelo("nome")
     - __init__(self, n_classes, n_mfcc=40, n_frames=101, **hp)   (hp = hiperparâmetros do YAML)
     - forward(x) com x: (B, n_mfcc, n_frames) = MFCC normalizado  ->  logits (B, n_classes)
+      (n_mfcc/n_frames variam: 40x101 no MFCC padrão, 10x49 no preset hello_edge — NÃO fixe no código)
 
 Uso:
     from modelos import criar_modelo, listar_modelos
@@ -38,10 +39,12 @@ def criar_modelo(nome, hp):
     if nome not in MODELOS:
         raise KeyError(f"Modelo '{nome}' não registrado. Disponíveis: {list(MODELOS)}")
     cls = MODELOS[nome]
-    n_frames = int(hp["duracao_s"] * 1000 / hp["passo_ms"]) + 1
     aceitos = inspect.signature(cls.__init__).parameters
     extras = {k: v for k, v in hp.items() if k in aceitos and k not in ("n_classes", "n_mfcc", "n_frames")}
-    return cls(n_classes=hp["n_classes"], n_mfcc=hp["n_mfcc"], n_frames=n_frames, **extras)
+    model = cls(n_classes=hp["n_classes"], n_mfcc=hp["n_mfcc"], n_frames=hp["n_frames"], **extras)
+    #Guardado no modelo para a contagem de MACs saber o formato da entrada
+    model.formato_entrada = (hp["n_mfcc"], hp["n_frames"])
+    return model
 
 
 def esta_implementado(nome):
