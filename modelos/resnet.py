@@ -9,7 +9,7 @@ Arquitetura-alvo (POC: 112 mil parâmetros, 37 M MACs, 94,5%):
     -> média global -> Linear(45, n_classes)
 Referência pronta: classe ResNet em kws-borda-poc/models.py
 
-STATUS: 🔜 a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
+STATUS: a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
 e rode `pytest` para conferir o contrato de entrada/saída.
 """
 import torch

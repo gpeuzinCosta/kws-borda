@@ -8,7 +8,7 @@ Arquitetura-alvo (POC: 47 mil parâmetros, 1,9 M MACs, 91,7%):
     -> AdaptiveAvgPool1d(1) -> Linear(64, n_classes)
 Referência pronta: classe CNN1D em kws-borda-poc/models.py
 
-STATUS: 🔜 a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
+STATUS: a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
 e rode `pytest` para conferir o contrato de entrada/saída.
 """
 import torch

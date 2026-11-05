@@ -10,7 +10,7 @@ Arquitetura-alvo (POC: 79 mil parâmetros, 9,6 M MACs, 89,3%):
 Atenção ao medir MACs: em eval() o PyTorch usa um kernel fundido invisível ao contador (ver evaluation/custo.py).
 Referência pronta: classe Attention em kws-borda-poc/models.py (e o notebook "Vision Transformer do zero")
 
-STATUS: 🔜 a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
+STATUS: a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
 e rode `pytest` para conferir o contrato de entrada/saída.
 """
 import torch

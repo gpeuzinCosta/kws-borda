@@ -10,7 +10,7 @@ Arquitetura-alvo (POC: 25 mil parâmetros, 22 M MACs, 93,1%):
     -> média global -> Linear(64, n_classes)
 Referência pronta: classe DSCNN em kws-borda-poc/models.py
 
-STATUS: 🔜 a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
+STATUS: a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
 e rode `pytest` para conferir o contrato de entrada/saída.
 """
 import torch

@@ -11,7 +11,7 @@ bancada de testes voltada para dispositivos restritos, no Google Speech Commands
 - **(a)** É possível encolher essas arquiteturas clássicas e ainda manter um reconhecimento de voz funcional?
 - **(b)** Em modelos tão pequenos, o que custa mais: o pré-processamento do áudio (MFCC) ou a inferência da rede?
 
-> 📓 **Comece pelo notebook principal [`notebooks/kws_borda_relatorio.ipynb`](notebooks/kws_borda_relatorio.ipynb).**
+> **Comece pelo notebook principal [`notebooks/kws_borda_relatorio.ipynb`](notebooks/kws_borda_relatorio.ipynb).**
 > Ele conta o projeto inteiro, passo a passo, e reúne todos os resultados finais.
 
 Prova de conceito anterior (que validou o pipeline e os datasets): [gpeuzinCosta/kws-borda-poc](https://github.com/gpeuzinCosta/kws-borda-poc).
@@ -22,14 +22,14 @@ Prova de conceito anterior (que validou o pipeline e os datasets): [gpeuzinCosta
 
 ```
 kws-borda/
-├── notebooks/       📓 notebook principal (projeto + resultados) e experimentos/ (rascunhos)
-├── modelos/         🧠 uma arquitetura por arquivo: mlp, cnn1d, resnet, dscnn, atencao
-├── dados/           🎧 funções para gerir os datasets: download, MFCC, GSC v2, DEMAND, AudioMNIST, MSWC-pt
-├── treino/          🏋️ loop de treino único (loop.py) + script de treino (treinar.py)
-├── avaliacao/       📏 métricas, custo (params/MACs), latência, ruído, gráficos + script (avaliar.py)
-├── configs/         ⚙️ hiperparâmetros: base.yaml (comum a todos) + <modelo>.yaml (só o que muda)
-├── tests/           ✅ testes rápidos com dados falsos
-└── docs/            📚 referências e achados da POC
+├── notebooks/       notebook principal (projeto + resultados) e experimentos/ (rascunhos)
+├── modelos/         uma arquitetura por arquivo: mlp, cnn1d, resnet, dscnn, atencao
+├── dados/           funções para gerir os datasets: download, MFCC, GSC v2, DEMAND, AudioMNIST, MSWC-pt
+├── treino/          loop de treino único (loop.py) + script de treino (treinar.py)
+├── avaliacao/       métricas, custo (params/MACs), latência, ruído, gráficos + script (avaliar.py)
+├── configs/         hiperparâmetros: base.yaml (comum a todos) + <modelo>.yaml (só o que muda)
+├── tests/           testes rápidos com dados falsos
+└── docs/            referências e achados da POC
 ```
 
 | Pasta | Arquivos | Para que serve |
