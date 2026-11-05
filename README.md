@@ -30,15 +30,6 @@ kws-borda/
 └── docs/            referências
 ```
 
-| Pasta | Arquivos | Para que serve |
-|---|---|---|
-| `modelos/` | `__init__.py` (registro), `mlp.py`, `cnn1d.py`, `resnet.py`, `dscnn.py`, `atencao.py` | cada integrante implementa a sua rede aqui |
-| `dados/` | `baixar.py`, `mfcc.py`, `speech_commands.py`, `ruido.py`, `audiomnist.py`, `mswc_pt.py` | baixar, ler e transformar o áudio em MFCC 40×101 |
-| `treino/` | `loop.py`, `treinar.py` | o mesmo treino para todas as redes |
-| `avaliacao/` | `metricas.py`, `custo.py`, `latencia.py`, `externos.py`, `resultados.py`, `graficos.py`, `avaliar.py` | acurácia, F1, matriz de confusão, MACs, latência MFCC × rede, ruído e generalização |
-| `notebooks/` | `kws_borda_relatorio.ipynb`, `experimentos/template_modelo.ipynb` | narrativa do projeto + rascunhos |
-| `configs/` | `base.yaml`, `<modelo>.yaml` | hiperparâmetros fora do código |
-
 **Ideia central:** dados, pré-processamento, treino e avaliação são **iguais para todos**. Cada integrante só
 implementa a sua arquitetura em `modelos/<modelo>.py`. Assim, a diferença nos resultados vem da arquitetura,
 não de truques de treino.
