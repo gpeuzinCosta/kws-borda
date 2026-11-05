@@ -68,17 +68,6 @@ python avaliacao/avaliar.py                                     # parâmetros, M
 
 Sempre rode a partir da **raiz** do repositório.
 
-### Opções do experimento (`configs/base.yaml`, painel do notebook ou argumentos do `treinar.py`)
-
-| Opção | Valores | O que muda |
-|---|---|---|
-| `tarefa` | `gsc35` (padrão) · `gsc12` | 35 palavras, ou 10 comandos + `_unknown_` + `_silence_` (padrão dos artigos) |
-| MFCC | `padrao` (40×101) · `hello_edge` (10×49) | tamanho da entrada e custo do pré-processamento |
-| `normalizacao` | `global` (padrão) · `por_amostra` | estatísticas do treino, ou de cada áudio |
-
-A tarefa de 12 classes, o MFCC 10×49 e a normalização por amostra vieram do notebook do Luciano
-(`notebooks/experimentos/Projeto_MLP.ipynb`). Cada combinação tem os próprios caches e treinos salvos.
-
 ## Como implementar um modelo
 
 1. Abra `modelos/<modelo>.py`. O esqueleto já traz a arquitetura-alvo e o paper na docstring.
