@@ -1,0 +1,25 @@
+# Dados brutos e caches (ficam no Google Drive / disco local, nunca no git)
+data/
+cache/
+*.tar.gz
+*.zip
+
+# Saídas de treino (checkpoints e históricos ficam no Drive)
+runs/
+*.pt
+*.pth
+*.npy
+
+# Python / ambiente
+__pycache__/
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Jupyter / Colab
+.ipynb_checkpoints/
+
+# Sistema
+.DS_Store
+*.log

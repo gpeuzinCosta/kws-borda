@@ -1,0 +1,4 @@
+# CNN 1D — convolução temporal: os 40 coeficientes MFCC são os canais. Responsável: a definir
+modelo:
+  nome: cnn1d
+  canais: 64

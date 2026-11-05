@@ -1,0 +1,9 @@
+# Atenção — KWT-tiny (Berg et al. 2021): cada frame do MFCC vira um token. Responsável: a definir
+modelo:
+  nome: atencao
+  d_model: 64
+  n_camadas: 2
+  n_heads: 2
+  dropout: 0.1
+treino:
+  learning_rate: 0.001     # Transformers costumam pedir lr menor

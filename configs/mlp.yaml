@@ -1,0 +1,6 @@
+# MLP — baseline: achata o MFCC (40x101) e passa por camadas densas.
+modelo:
+  nome: mlp
+  hidden: 64
+  n_camadas: 2
+  dropout: 0.1

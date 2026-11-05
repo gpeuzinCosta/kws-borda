@@ -1,0 +1,33 @@
+# Configuração comum a TODOS os modelos.
+# Cada configs/<modelo>.yaml só sobrescreve o que muda — assim a comparação é justa:
+# mesmos dados, mesmo pré-processamento, mesmo loop de treino.
+
+dados:
+  dataset: speech_commands_v2
+  n_classes: 35             # as 35 palavras do GSC v2 (necessário para dígitos do AudioMNIST e mapeamento PT->EN)
+  sample_rate: 16000
+  duracao_s: 1.0
+  n_mfcc: 40                # 40 coeficientes  -> entrada (B, 40, 101)
+  janela_ms: 30
+  passo_ms: 10
+  n_mels: 40
+  f_min: 20
+  f_max: 7600
+  spec_augment: true        # máscara de tempo e de coeficientes, igual para todos
+
+treino:
+  epocas: 20
+  batch_size: 128
+  learning_rate: 0.003
+  weight_decay: 0.01
+  otimizador: adamw
+  scheduler: onecycle
+  label_smoothing: 0.1
+  seeds: [0, 1, 2]          # 3 rodadas independentes para média ± desvio
+  num_workers: 0            # MFCC já está em memória: processos extras só adicionam overhead
+
+avaliacao:
+  latencia_repeticoes: 300
+  latencia_aquecimento: 30
+  latencia_threads: 1       # simula um dispositivo restrito (1 núcleo)
+  snrs_db: [20, 10, 5, 0, -5]

@@ -1,0 +1,84 @@
+"""configs — hiperparâmetros (YAML), pastas do projeto e device.
+
+Os YAMLs são organizados em seções (dados, treino, avaliacao, modelo) para ficarem legíveis,
+mas o código usa um dicionário "achatado" `hyperparameters`, no mesmo estilo dos exercícios:
+
+    hp = carregar_config("dscnn")
+    hp["batch_size"], hp["learning_rate"], hp["canais"] ...
+"""
+from pathlib import Path
+
+import os
+
+import yaml
+
+#configs/__init__.py -> a pasta configs/ e a raiz do repositório
+PASTA_CONFIGS = Path(__file__).resolve().parent
+RAIZ_REPO = PASTA_CONFIGS.parent
+
+
+def _mesclar(base, novo):
+    """Mescla dicionários aninhados: o que está em `novo` sobrescreve `base`."""
+    out = dict(base)
+    for k, v in novo.items():
+        if isinstance(v, dict) and isinstance(out.get(k), dict):
+            out[k] = _mesclar(out[k], v)
+        else:
+            out[k] = v
+    return out
+
+
+def _achatar(cfg):
+    """{'treino': {'batch_size': 128}, 'modelo': {'nome': 'mlp'}} -> {'batch_size': 128, 'modelo': 'mlp'}"""
+    plano = {}
+    for secao, valores in cfg.items():
+        if not isinstance(valores, dict):
+            plano[secao] = valores
+            continue
+        for k, v in valores.items():
+            #O nome do modelo vira a chave 'modelo' para ficar mais legível
+            chave = "modelo" if (secao == "modelo" and k == "nome") else k
+            if chave in plano:
+                raise KeyError(f"Hiperparâmetro '{chave}' repetido em mais de uma seção do YAML")
+            plano[chave] = v
+    return plano
+
+
+def carregar_config(modelo, pasta=PASTA_CONFIGS, **sobrescritas):
+    """Carrega configs/base.yaml + configs/<modelo>.yaml e devolve o dicionário `hyperparameters`.
+
+    Qualquer chave pode ser sobrescrita na chamada, ex.: carregar_config("mlp", epocas=1).
+    """
+    pasta = Path(pasta)
+    base = yaml.safe_load(open(pasta / "base.yaml"))
+    especifico = yaml.safe_load(open(pasta / f"{modelo}.yaml")) or {}
+    hp = _achatar(_mesclar(base, especifico))
+    for k, v in sobrescritas.items():
+        if v is not None:
+            hp[k] = v
+    return hp
+
+
+def escolher_device():
+    """GPU se houver (Colab Pro), senão CPU."""
+    import torch
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def pastas_projeto(raiz=None):
+    """Pastas de dados, cache e runs (checkpoints, históricos e o resultados.csv).
+
+    No Colab o setup define KWS_DRIVE (ex.: /content/drive/MyDrive/kws-borda) e KWS_DATA (/content/data):
+    os dados brutos são lidos do disco local (rápido), e cache/runs ficam no Drive (persistem).
+    Localmente, tudo fica dentro do próprio repositório.
+    """
+    raiz = Path(raiz or os.environ.get("KWS_DRIVE", RAIZ_REPO))
+    pastas = {
+        "dados": Path(os.environ.get("KWS_DATA", raiz / "data")),
+        "cache": raiz / "cache",
+        "runs": raiz / "runs",
+        "resultados": raiz / "runs",      #resultados.csv fica junto dos runs
+    }
+    for p in pastas.values():
+        p.mkdir(parents=True, exist_ok=True)
+    return pastas
