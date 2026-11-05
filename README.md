@@ -51,15 +51,6 @@ não de truques de treino.
    instala as dependências.
 4. *Ambiente de execução → Executar tudo*.
 
-**Onde ficam os arquivos no Colab:**
-
-| O quê | Onde | Por quê |
-|---|---|---|
-| `.tar.gz`/`.zip` dos datasets | `MyDrive/kws-borda/downloads/` | baixa **uma vez** só (o GSC tem 2,3 GB) |
-| áudios extraídos | `/content/data/` (disco local da sessão) | ler 105 mil `.wav` direto do Drive é muito lento |
-| cache de MFCC | `MyDrive/kws-borda/cache/` | não precisa recalcular a cada sessão |
-| checkpoints + `resultados.csv` | `MyDrive/kws-borda/runs/` | não perde o treino se o runtime cair |
-
 ### Notebooks de experimento (rascunhos)
 
 | Notebook | Autor | O que faz | Colab |
