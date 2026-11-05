@@ -46,7 +46,7 @@ def _achatar(cfg):
 
 #Configurações de MFCC prontas. Uso: carregar_config("dscnn", **PRESETS_MFCC["hello_edge"])
 PRESETS_MFCC = {
-    #Validada na POC: 40 coeficientes x 101 janelas
+    #40 coeficientes x 101 janelas (janela 30 ms, passo 10 ms)
     "padrao": dict(n_mfcc=40, janela_ms=30, passo_ms=10, n_mels=40, center=True),
     #Igual ao artigo Hello Edge (e ao notebook do Luciano): 10 coeficientes x 49 janelas, entrada 8x menor
     "hello_edge": dict(n_mfcc=10, janela_ms=40, passo_ms=20, n_mels=40, center=False),

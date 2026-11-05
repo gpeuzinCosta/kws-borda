@@ -14,8 +14,6 @@ bancada de testes voltada para dispositivos restritos, no Google Speech Commands
 > **Comece pelo notebook principal [`notebooks/kws_borda_relatorio.ipynb`](notebooks/kws_borda_relatorio.ipynb).**
 > Ele conta o projeto inteiro, passo a passo, e reúne todos os resultados finais.
 
-Prova de conceito anterior (que validou o pipeline e os datasets): [gpeuzinCosta/kws-borda-poc](https://github.com/gpeuzinCosta/kws-borda-poc).
-
 ---
 
 ## Estrutura
@@ -29,7 +27,7 @@ kws-borda/
 ├── avaliacao/       métricas, custo (params/MACs), latência, ruído, gráficos + script (avaliar.py)
 ├── configs/         hiperparâmetros: base.yaml (comum a todos) + <modelo>.yaml (só o que muda)
 ├── tests/           testes rápidos com dados falsos
-└── docs/            referências e achados da POC
+└── docs/            referências
 ```
 
 | Pasta | Arquivos | Para que serve |
@@ -157,7 +155,7 @@ mesmo caminho do arquivo. Depois abra o PR pelo GitHub.
 
 ## Datasets
 
-| Dataset | Papel no projeto | Observação (POC) |
+| Dataset | Papel no projeto | Observação |
 |---|---|---|
 | [Google Speech Commands v2](https://www.tensorflow.org/datasets/catalog/speech_commands) | treino / validação / teste (35 palavras) | split oficial por locutor |
 | [DEMAND (Zenodo 1227121)](https://zenodo.org/records/1227121) | **ruído real** misturado ao teste em SNR de 20 a −5 dB | não é fala: só ruído ambiente |

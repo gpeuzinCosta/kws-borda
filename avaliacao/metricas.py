@@ -4,7 +4,7 @@
 - F1 macro: média do F1 de cada classe (F1 = média harmônica de precisão e revocação). Dá o mesmo peso a
   todas as palavras, então uma classe difícil ("forward", "learn") não some atrás das fáceis.
 - Matriz de confusão: linha = palavra verdadeira, coluna = palavra prevista. Fora da diagonal estão os
-  erros — e eles são FONÉTICOS (POC: forward->four, tree<->three, go<->no, off->up).
+  erros — e costumam ser FONÉTICOS (palavras parecidas, como tree/three e go/no).
 """
 import numpy as np
 import pandas as pd

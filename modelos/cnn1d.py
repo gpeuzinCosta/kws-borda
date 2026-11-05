@@ -3,10 +3,9 @@
 Ideia: os 40 coeficientes MFCC são tratados como CANAIS e a convolução desliza só no eixo temporal
 (101 frames). Cada filtro aprende um padrão espectral que se repete no tempo. Muito barata em MACs.
 
-Arquitetura-alvo (POC: 47 mil parâmetros, 1,9 M MACs, 91,7%):
+Arquitetura-alvo:
     4 blocos [Conv1d k=3 -> BatchNorm1d -> ReLU], 64 canais, stride 2 nos 3 últimos
     -> AdaptiveAvgPool1d(1) -> Linear(64, n_classes)
-Referência pronta: classe CNN1D em kws-borda-poc/models.py
 
 STATUS: a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
 e rode `pytest` para conferir o contrato de entrada/saída.

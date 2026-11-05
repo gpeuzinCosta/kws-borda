@@ -4,11 +4,10 @@ Ideia: uma Conv 3x3 comum com C canais custa C*C*9 pesos. A separável divide em
   (1) depthwise: um filtro 3x3 POR canal (C*9)  +  (2) pointwise: Conv 1x1 que mistura canais (C*C).
 ~8-9x menos parâmetros e MACs com acurácia parecida — foi feita para microcontroladores.
 
-Arquitetura-alvo (POC: 25 mil parâmetros, 22 M MACs, 93,1%):
+Arquitetura-alvo:
     entrada (B, 1, T, F) -> Conv2d(1, 64, (10, 4), stride 2) -> BN -> ReLU
     -> 4 x [DepthwiseConv 3x3 -> BN -> ReLU -> PointwiseConv 1x1 -> BN -> ReLU]
     -> média global -> Linear(64, n_classes)
-Referência pronta: classe DSCNN em kws-borda-poc/models.py
 
 STATUS: a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
 e rode `pytest` para conferir o contrato de entrada/saída.

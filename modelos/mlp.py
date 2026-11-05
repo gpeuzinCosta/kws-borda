@@ -2,7 +2,7 @@
 
 Achata o MFCC (40 x 101 = 4.040 números) e passa por camadas densas.
 Não tem nenhuma noção de tempo nem de vizinhança: cada coeficiente em cada frame é um peso separado.
-Por isso tende a ter MUITOS parâmetros e acurácia baixa — na POC: 265 mil parâmetros e 68% (35 classes).
+Por isso tende a ter MUITOS parâmetros e acurácia mais baixa que as redes convolucionais.
 É o contraexemplo útil para a hipótese (a): tamanho não é tudo, a arquitetura importa.
 """
 import torch

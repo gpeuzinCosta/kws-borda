@@ -3,11 +3,10 @@
 Ideia: trata o MFCC como uma "imagem" 1 x 40 x 101 (Conv2d). Os atalhos residuais (x + F(x)) deixam
 o gradiente fluir e permitem redes mais profundas com poucos canais.
 
-Arquitetura-alvo (POC: 112 mil parâmetros, 37 M MACs, 94,5%):
+Arquitetura-alvo:
     Conv2d(1, 45, 3) -> BN -> ReLU -> AvgPool(3, 4)
     -> 3 blocos residuais [Conv 3x3 -> BN -> ReLU -> Conv 3x3 -> BN] + atalho
     -> média global -> Linear(45, n_classes)
-Referência pronta: classe ResNet em kws-borda-poc/models.py
 
 STATUS: a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
 e rode `pytest` para conferir o contrato de entrada/saída.

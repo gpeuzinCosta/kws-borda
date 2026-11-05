@@ -3,7 +3,7 @@
 - 105.835 áudios de 1 s, 16 kHz, 35 palavras, ~2.600 locutores.
 - Split OFICIAL por locutor (validation_list.txt / testing_list.txt): o mesmo locutor nunca aparece
   em treino e teste, então medimos generalização para vozes novas.
-- Lemos os .wav com soundfile direto da pasta extraída (como na POC) em vez de
+- Lemos os .wav com soundfile direto da pasta extraída em vez de
   torchaudio.datasets.SPEECHCOMMANDS — mesmo conteúdo, sem depender do backend de áudio do torchaudio.
 - O MFCC de todo o dataset é calculado UMA vez e salvo em cache (.pt): treinar fica muito mais rápido
   e todos os modelos recebem exatamente a mesma entrada.

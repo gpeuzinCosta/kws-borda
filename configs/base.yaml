@@ -10,7 +10,7 @@ dados:
   tarefa: gsc35
   sample_rate: 16000
   duracao_s: 1.0
-  # MFCC "padrao" (POC): 40 coef, janela 30 ms, passo 10 ms, center -> entrada (B, 40, 101)
+  # MFCC "padrao": 40 coef, janela 30 ms, passo 10 ms, center -> entrada (B, 40, 101)
   # Preset "hello_edge" (configs.PRESETS_MFCC): 10 coef, 40 ms, 20 ms, sem center -> (B, 10, 49)
   n_mfcc: 40
   janela_ms: 30

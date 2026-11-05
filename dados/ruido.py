@@ -1,6 +1,6 @@
 """Ruído real para o "teste de sobrevivência" — base DEMAND (Zenodo 1227121).
 
-Achado da POC: o link do Zenodo do plano NÃO é um dataset de fala, é o DEMAND, com gravações de RUÍDO
+Atenção: o link do Zenodo do plano NÃO é um dataset de fala, é o DEMAND, com gravações de RUÍDO
 ambiente (cozinha, sala, escritório, cafeteria, trânsito, metrô, carro, parque...) em 16 canais.
 Uso no projeto: misturar esse ruído aos áudios de TESTE do GSC em diferentes SNRs (relação sinal-ruído)
 e medir quanto a acurácia de cada modelo cai. Nenhum modelo vê esse ruído no treino.

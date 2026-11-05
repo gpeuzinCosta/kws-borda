@@ -4,11 +4,11 @@ Ideia: cada frame do MFCC (vetor de 40 coeficientes) vira um TOKEN, como uma pal
 patch no Vision Transformer. A autoatenção deixa cada frame olhar para todos os outros, capturando
 contexto global em uma camada só. Um token [CLS] aprendido resume o áudio para a classificação.
 
-Arquitetura-alvo (POC: 79 mil parâmetros, 9,6 M MACs, 89,3%):
+Arquitetura-alvo:
     Linear(40 -> d=64) por frame + token CLS + embedding posicional (102 posições)
     -> 2 camadas TransformerEncoder (2 cabeças, FFN 128, pre-norm) -> LayerNorm(CLS) -> Linear(64, n_classes)
 Atenção ao medir MACs: em eval() o PyTorch usa um kernel fundido invisível ao contador (ver evaluation/custo.py).
-Referência pronta: classe Attention em kws-borda-poc/models.py (e o notebook "Vision Transformer do zero")
+Referência: notebook "Vision Transformer do zero" da disciplina
 
 STATUS: a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
 e rode `pytest` para conferir o contrato de entrada/saída.

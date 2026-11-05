@@ -1,6 +1,6 @@
 """Pré-processamento único do áudio para TODOS os modelos.
 
-Pipeline (o mesmo validado na POC):
+Pipeline:
     áudio qualquer -> mono 16 kHz -> exatamente 1 s (16000 amostras) -> MFCC 40 coef
     janela de 30 ms (480 amostras) e passo de 10 ms (160 amostras) -> 101 frames
     saída: tensor (B, 40, 101)
@@ -92,8 +92,6 @@ def ler_audio(caminho):
 
 def mfcc_librosa(wav_np, n_mfcc=40, n_fft=480, hop=160, n_mels=40, f_min=20, f_max=7600):
     """Mesma configuração via librosa — para comparar o custo de IMPLEMENTAÇÃO do MFCC (hipótese b).
-
-    Na POC o librosa foi ~5x mais lento que o torchaudio, o que muda a resposta da hipótese (b).
     """
     import librosa
     return librosa.feature.mfcc(y=wav_np, sr=SR, n_mfcc=n_mfcc, n_fft=n_fft, win_length=n_fft,

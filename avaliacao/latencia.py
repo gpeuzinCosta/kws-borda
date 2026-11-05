@@ -1,11 +1,11 @@
 """Latência — hipótese (b): em modelos tão pequenos, o que custa mais, o MFCC ou a rede?
 
-Protocolo (fixado na POC para ser justo e reprodutível):
+Protocolo (para ser justo e reprodutível):
 - batch = 1 (um comando de voz por vez, como no dispositivo)
 - CPU com 1 thread (simula um núcleo de um dispositivo de borda)
 - aquecimento antes de medir (caches, alocações) e mediana + p95 de várias repetições
-- o MFCC é medido SEPARADO da rede, e a biblioteca do MFCC é registrada (torchaudio vs librosa
-  mudou a resposta na POC: com librosa o MFCC custou mais que a rede em todos os 5 modelos)
+- o MFCC é medido SEPARADO da rede, e a biblioteca do MFCC é registrada (torchaudio vs librosa):
+  a implementação pode mudar a resposta da hipótese (b)
 """
 import time
 

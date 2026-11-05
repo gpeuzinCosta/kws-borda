@@ -4,8 +4,8 @@
 - MACs (multiply-accumulate): nº de multiplicações+somas para classificar UM áudio. 1 MAC = 2 FLOPs.
   É o custo matemático da inferência, independente do hardware.
 
-Cuidado (achado da POC): em eval() o Transformer do PyTorch usa um kernel fundido ("fast path") que o
-contador de FLOPs não enxerga — subestima a Atenção em ~37x. Por isso contamos em modo train().
+Cuidado: em eval() o Transformer do PyTorch usa um kernel fundido ("fast path") que o
+contador de FLOPs não enxerga — subestima muito a Atenção. Por isso contamos em modo train().
 """
 import torch
 from torch.utils.flop_counter import FlopCounterMode

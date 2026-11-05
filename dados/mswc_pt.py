@@ -1,13 +1,12 @@
 """Multilingual Spoken Words Corpus (MSWC) — português. Teste de transferência de idioma.
 
-Achado da POC: 1,1 GB, 5.664 palavras, opus 48 kHz. Dígitos, "sim", "não", "cima", "baixo" e "vai" têm
+1,1 GB, 5.664 palavras, opus 48 kHz. Dígitos, "sim", "não", "cima", "baixo" e "vai" têm
 clipes suficientes; "esquerda", "direita", "parar", "ligar", "desligar" têm poucos; "um" não existe
 (o MSWC exclui palavras com menos de 3 letras).
 
 Dois experimentos:
 1. zero-shot mapeado: o modelo em inglês acerta o equivalente (sim->yes, cima->up)? Esperado: perto do acaso.
 2. few-shot / cabeça linear: congela a rede, troca só a última camada e treina com K exemplos por palavra.
-   Na POC isso chegou a ~85% com 20 exemplos/palavra.
 """
 from pathlib import Path
 import random
@@ -44,6 +43,6 @@ def listar_mswc_pt(pasta_clips, min_clipes=50, por_palavra=200, seed=0):
 def avaliar_cabeca_linear(*args, **kwargs):
     """TODO (seção 11 do notebook): backbone congelado + LogisticRegression com K exemplos por palavra.
 
-    Referência pronta: função `mswc` em kws-borda-poc/eval_external.py. Pendência: usar split por falante.
+    Pendência: separar treino/teste por falante.
     """
     raise NotImplementedError("Avaliação few-shot do MSWC-pt ainda não implementada (ver docstring).")
