@@ -131,12 +131,12 @@ então combine com o grupo antes.
 
 ## Datasets
 
-| Dataset | Papel no projeto | Observação |
-|---|---|---|
-| [Google Speech Commands v2](https://www.tensorflow.org/datasets/catalog/speech_commands) | treino / validação / teste (35 palavras) | split oficial por locutor |
-| [DEMAND (Zenodo 1227121)](https://zenodo.org/records/1227121) | **ruído real** misturado ao teste em SNR de 20 a −5 dB | não é fala: só ruído ambiente |
-| [AudioMNIST](https://github.com/soerenab/AudioMNIST) | dígitos de outros falantes, sotaques e salas | mesmo microfone para todos |
-| [MSWC português](https://mlcommons.org/datasets/multilingual-spoken-words/) | transferência de idioma (few-shot) | só ~14 palavras com clipes suficientes |
+| Dataset | Papel no projeto |
+|---|---|
+| [Google Speech Commands v2](https://www.tensorflow.org/datasets/catalog/speech_commands) | treino / validação / teste (35 palavras) |
+| [DEMAND (Zenodo 1227121)](https://zenodo.org/records/1227121) | **ruído real** misturado ao teste em SNR de 20 a −5 dB |
+| [AudioMNIST](https://github.com/soerenab/AudioMNIST) | dígitos de outros falantes, sotaques e salas |
+| [MSWC português](https://mlcommons.org/datasets/multilingual-spoken-words/) | transferência de idioma (few-shot) |
 
 ## Métricas
 
