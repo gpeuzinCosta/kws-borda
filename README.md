@@ -60,12 +60,6 @@ não de truques de treino.
 | cache de MFCC | `MyDrive/kws-borda/cache/` | não precisa recalcular a cada sessão |
 | checkpoints + `resultados.csv` | `MyDrive/kws-borda/runs/` | não perde o treino se o runtime cair |
 
-> Para o grupo compartilhar dados e treinos, uma pessoa cria `MyDrive/kws-borda` e compartilha a pasta. Os
-> outros adicionam um atalho dela no próprio "Meu Drive".
-
-**Alternativa: VS Code + Colab.** A extensão oficial *Google Colab* do VS Code conecta um notebook aberto
-localmente a um runtime do Colab (inclusive o Pro). A célula de Setup funciona igual.
-
 ### Notebooks de experimento (rascunhos)
 
 | Notebook | Autor | O que faz | Colab |
