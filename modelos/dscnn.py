@@ -9,7 +9,7 @@ Arquitetura-alvo:
     -> 4 x [DepthwiseConv 3x3 -> BN -> ReLU -> PointwiseConv 1x1 -> BN -> ReLU]
     -> média global -> Linear(64, n_classes)
 
-STATUS: a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
+Implemente __init__ e forward, mude IMPLEMENTADO para True
 e rode `pytest` para conferir o contrato de entrada/saída.
 """
 import torch

@@ -8,7 +8,7 @@ Arquitetura-alvo:
     -> 3 blocos residuais [Conv 3x3 -> BN -> ReLU -> Conv 3x3 -> BN] + atalho
     -> média global -> Linear(45, n_classes)
 
-STATUS: a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
+Implemente __init__ e forward, mude IMPLEMENTADO para True
 e rode `pytest` para conferir o contrato de entrada/saída.
 """
 import torch

@@ -7,7 +7,7 @@ Arquitetura-alvo:
     4 blocos [Conv1d k=3 -> BatchNorm1d -> ReLU], 64 canais, stride 2 nos 3 últimos
     -> AdaptiveAvgPool1d(1) -> Linear(64, n_classes)
 
-STATUS: a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
+Implemente __init__ e forward, mude IMPLEMENTADO para True
 e rode `pytest` para conferir o contrato de entrada/saída.
 """
 import torch

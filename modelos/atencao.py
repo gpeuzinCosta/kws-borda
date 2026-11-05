@@ -10,7 +10,7 @@ Arquitetura-alvo:
 Atenção ao medir MACs: em eval() o PyTorch usa um kernel fundido invisível ao contador (ver evaluation/custo.py).
 Referência: notebook "Vision Transformer do zero" da disciplina
 
-STATUS: a fazer — esqueleto. Implemente __init__ e forward, mude IMPLEMENTADO para True
+Implemente __init__ e forward, mude IMPLEMENTADO para True
 e rode `pytest` para conferir o contrato de entrada/saída.
 """
 import torch
