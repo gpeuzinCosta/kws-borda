@@ -125,10 +125,6 @@ hiperparâmetros dele em `configs/<modelo>.yaml`. Assim, todos os modelos são t
 do mesmo jeito, e a comparação é justa. Se algo nos módulos comuns precisar mudar, a mudança vale para todos,
 então combine com o grupo antes.
 
-### Salvando um notebook editado no Colab
-
-*Arquivo → Salvar uma cópia no GitHub* → escolha o repo `gpeuzinCosta/kws-borda` e o mesmo caminho do arquivo.
-
 ## Datasets
 
 | Dataset | Papel no projeto |
