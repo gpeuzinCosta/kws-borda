@@ -112,37 +112,22 @@ A tarefa de 12 classes, o MFCC 10×49 e a normalização por amostra vieram do n
 3. Troque `IMPLEMENTADO = False` para `True`.
 4. Ajuste os hiperparâmetros em `configs/<modelo>.yaml`.
 5. `pytest` → `python treino/treinar.py --modelo <modelo> --dados-falsos --epocas 1`.
-6. Abra um Pull Request (veja [Como colaborar](#como-colaborar)).
+6. Faça o commit e envie para o GitHub.
 
 Para um modelo novo (fora dos 5): crie `modelos/<nome>.py` com `@registrar_modelo("<nome>")`, adicione o nome
 à lista em `modelos/__init__.py` e crie `configs/<nome>.yaml`.
 
 ## Como colaborar
 
-### Fluxo
-
-1. Atualize o `main`: `git checkout main && git pull`.
-2. Crie uma branch para o seu trabalho: `git checkout -b modelo/dscnn` (ou `dados/mswc`, `avaliacao/ruido`…).
-3. Faça commits pequenos e com mensagens claras em português.
-4. Antes do PR, rode `pytest`.
-5. Abra um Pull Request para o `main` e peça revisão de outro integrante.
-
-### Regras
-
-- **Não altere o loop de treino, o pré-processamento nem as métricas por conta própria**: eles são a "régua"
-  comum. Se precisar mudar algo, abra uma issue/PR separado e combine com o grupo, porque a mudança afeta
-  todos os modelos.
-- **Nunca versione dados, caches nem checkpoints** (`data/`, `cache/`, `runs/`, `*.pt`). Eles ficam no Drive.
-- Hiperparâmetros vão no `configs/<modelo>.yaml`, não espalhados pelo código.
-- **Notebooks:** os resultados finais vão para `notebooks/kws_borda_relatorio.ipynb`. Rascunhos vão para
-  `notebooks/experimentos/<modelo>_<nome>.ipynb`, copiados do `template_modelo.ipynb`.
-- Antes de commitar um notebook, limpe as saídas pesadas (*Editar → Limpar todas as saídas*), exceto no
-  relatório final, quando ele for congelado para a entrega.
+**A única regra:** todos usam os **módulos comuns** para carregar os dados, treinar e avaliar
+(`dados/`, `treino/` e `avaliacao/`). Cada integrante só escreve o seu modelo em `modelos/<modelo>.py` e os
+hiperparâmetros dele em `configs/<modelo>.yaml`. Assim, todos os modelos são treinados e testados exatamente
+do mesmo jeito, e a comparação é justa. Se algo nos módulos comuns precisar mudar, a mudança vale para todos,
+então combine com o grupo antes.
 
 ### Salvando um notebook editado no Colab
 
-*Arquivo → Salvar uma cópia no GitHub* → escolha o repo `gpeuzinCosta/kws-borda`, a **sua branch** e o
-mesmo caminho do arquivo. Depois abra o PR pelo GitHub.
+*Arquivo → Salvar uma cópia no GitHub* → escolha o repo `gpeuzinCosta/kws-borda` e o mesmo caminho do arquivo.
 
 ### Divisão sugerida
 
