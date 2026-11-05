@@ -112,7 +112,6 @@ A tarefa de 12 classes, o MFCC 10×49 e a normalização por amostra vieram do n
 3. Troque `IMPLEMENTADO = False` para `True`.
 4. Ajuste os hiperparâmetros em `configs/<modelo>.yaml`.
 5. `pytest` → `python treino/treinar.py --modelo <modelo> --dados-falsos --epocas 1`.
-6. Faça o commit e envie para o GitHub.
 
 Para um modelo novo (fora dos 5): crie `modelos/<nome>.py` com `@registrar_modelo("<nome>")`, adicione o nome
 à lista em `modelos/__init__.py` e crie `configs/<nome>.yaml`.
