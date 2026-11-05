@@ -106,7 +106,8 @@ A tarefa de 12 classes, o MFCC 10×49 e a normalização por amostra vieram do n
 
 1. Abra `modelos/<modelo>.py`. O esqueleto já traz a arquitetura-alvo e o paper na docstring.
 2. Implemente `__init__` e `forward` respeitando o contrato:
-   - entrada `x`: `(B, 40, 101)` = MFCC normalizado (40 coeficientes × 101 janelas de 10 ms);
+   - entrada `x`: `(B, n_mfcc, n_frames)` = MFCC normalizado (40 × 101 no MFCC padrão, 10 × 49 no `hello_edge`;
+     não fixe esses números no código);
    - saída: logits `(B, n_classes)`;
    - a última camada se chama `self.head`.
 3. Troque `IMPLEMENTADO = False` para `True`.
