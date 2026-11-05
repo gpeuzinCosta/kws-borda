@@ -68,6 +68,14 @@ não de truques de treino.
 **Alternativa: VS Code + Colab.** A extensão oficial *Google Colab* do VS Code conecta um notebook aberto
 localmente a um runtime do Colab (inclusive o Pro). A célula de Setup funciona igual.
 
+### Notebooks de experimento (rascunhos)
+
+| Notebook | Autor | O que faz | Colab |
+|---|---|---|---|
+| `experimentos/Projeto_MLP.ipynb` | Luciano | MLP em 12 classes, MFCC 10×49, normalização por amostra (79,6% val) | [![Abrir no Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeuzinCosta/kws-borda/blob/main/notebooks/experimentos/Projeto_MLP.ipynb) |
+| `experimentos/Projeto_Exemplo_MLP_2_classes.ipynb` | Luciano | exploração do GSC v2 e MLP em 2 classes (yes/no) | [![Abrir no Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeuzinCosta/kws-borda/blob/main/notebooks/experimentos/Projeto_Exemplo_MLP_2_classes.ipynb) |
+| `experimentos/template_modelo.ipynb` | — | modelo para começar um experimento novo com a bancada | [![Abrir no Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeuzinCosta/kws-borda/blob/main/notebooks/experimentos/template_modelo.ipynb) |
+
 ## Como rodar localmente
 
 ```bash
