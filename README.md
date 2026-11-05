@@ -129,15 +129,6 @@ então combine com o grupo antes.
 
 *Arquivo → Salvar uma cópia no GitHub* → escolha o repo `gpeuzinCosta/kws-borda` e o mesmo caminho do arquivo.
 
-### Divisão sugerida
-
-| Frente | Responsável |
-|---|---|
-| Bancada (dados, treino, avaliação) + MLP | Guilherme |
-| CNN 1D / ResNet | _a definir_ |
-| DS-CNN / Atenção | _a definir_ |
-| Ruído DEMAND, AudioMNIST, MSWC-pt | _a definir_ |
-
 ## Datasets
 
 | Dataset | Papel no projeto | Observação |
