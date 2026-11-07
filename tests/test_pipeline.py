@@ -9,7 +9,7 @@ import pytest
 import soundfile as sf
 import torch
 
-from configs import PRESETS_MFCC, carregar_config
+from configs import PRESETS_MFCC, carregar_config, montar_hp
 from dados import (CLASSES_GSC, CLASSES_GSC12, ExtratorMFCC, criar_dataloaders, dados_falsos, ler_trecho,
                    listar_split, normalizar, rotulo, spec_augment_batch)
 from avaliacao import acuracia, custo, f1_macro, matriz_confusao, medir_latencia, relatorio_por_classe
@@ -23,6 +23,18 @@ def test_config_mescla_base_e_modelo():
     hp = carregar_config("mlp", epocas=1)
     assert hp["modelo"] == "mlp" and hp["epocas"] == 1 and hp["n_mfcc"] == 40
     assert hp["n_classes"] == 35 and carregar_config("mlp", tarefa="gsc12")["n_classes"] == 12
+
+
+def test_montar_hp_igual_ao_yaml():
+    #O relatório escreve os hiperparâmetros no notebook: com os valores dos YAMLs, tem que dar o mesmo dicionário
+    import yaml
+    from configs import PASTA_CONFIGS, _achatar
+    comum = _achatar(yaml.safe_load(open(PASTA_CONFIGS / "base.yaml")))
+    especifico = _achatar(yaml.safe_load(open(PASTA_CONFIGS / "cnn1d.yaml")))
+    especifico.pop("modelo")
+    hp = montar_hp(comum, {"cnn1d": especifico}, "cnn1d", epocas=3, fracao=None)
+    assert hp == carregar_config("cnn1d", epocas=3)
+    assert (hp["n_mfcc"], hp["n_frames"], hp["canais"]) == (10, 49, 48)
 
 
 @pytest.mark.parametrize("preset,formato", [("padrao", (40, 101)), ("hello_edge", (10, 49))])

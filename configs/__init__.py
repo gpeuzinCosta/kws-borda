@@ -77,6 +77,25 @@ def carregar_config(modelo, pasta=PASTA_CONFIGS, mfcc=None, **sobrescritas):
     return hp
 
 
+def montar_hp(hyperparameters, hp_modelos, nome, **sobrescritas):
+    """Hiperparâmetros do modelo `nome` a partir de dicionários escritos no notebook (sem YAML).
+
+    hyperparameters: o que é comum a todos os modelos | hp_modelos[nome]: só o que muda no modelo.
+    Mesmas regras do carregar_config: sobrescritas com valor None são ignoradas, e n_classes e n_frames
+    são calculados a partir da tarefa e do MFCC.
+    """
+    hp = {**hyperparameters, **hp_modelos.get(nome, {}), "modelo": nome}
+    for k, v in sobrescritas.items():
+        if v is not None:
+            hp[k] = v
+
+    from dados.mfcc import calcular_n_frames
+    from dados.speech_commands import classes_da_tarefa
+    hp["n_classes"] = len(classes_da_tarefa(hp["tarefa"]))
+    hp["n_frames"] = calcular_n_frames(hp)
+    return hp
+
+
 def rotulo_experimento(hp):
     """Nome curto da configuração, ex.: 'gsc12_10x49_por_amostra'. Separa runs e resultados de setups diferentes."""
     return f"{hp['tarefa']}_{hp['n_mfcc']}x{hp['n_frames']}_{hp.get('normalizacao', 'global')}"
