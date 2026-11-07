@@ -14,9 +14,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import argparse
 
 import pandas as pd
+import torch
 
 from configs import PRESETS_MFCC, carregar_config
-from dados import ExtratorMFCC
 from avaliacao import custo, medir_latencia
 from modelos import criar_modelo, esta_implementado, listar_modelos
 
@@ -35,7 +35,12 @@ if __name__ == "__main__":
             continue
         hp = carregar_config(nome, **PRESETS_MFCC.get(args.mfcc, {}))
         model = criar_modelo(nome, hp)
-        linhas.append(dict(modelo=nome, **custo(model),
-                           **medir_latencia(model, ExtratorMFCC.de_hparams(hp), threads=hp["latencia_threads"],
-                                            repeticoes=args.repeticoes, com_librosa=args.librosa)))
+        #Sem pesos treinados: média 0 e desvio 1 têm o mesmo custo (o tempo depende só do formato)
+        if hp["normalizacao"] == "global":
+            media, desvio = torch.zeros(hp["n_mfcc"], 1), torch.ones(hp["n_mfcc"], 1)
+        else:
+            media = desvio = None
+        linhas.append(dict(modelo=nome, entrada=f"{hp['n_mfcc']}x{hp['n_frames']}", **custo(model),
+                           **medir_latencia(model, hp, media, desvio, repeticoes=args.repeticoes,
+                                            com_librosa=args.librosa)))
     print(pd.DataFrame(linhas).round(3).to_string(index=False))

@@ -53,16 +53,19 @@ PRESETS_MFCC = {
 }
 
 
-def carregar_config(modelo, pasta=PASTA_CONFIGS, **sobrescritas):
+def carregar_config(modelo, pasta=PASTA_CONFIGS, mfcc=None, **sobrescritas):
     """Carrega configs/base.yaml + configs/<modelo>.yaml e devolve o dicionário `hyperparameters`.
 
     Qualquer chave pode ser sobrescrita na chamada, ex.: carregar_config("mlp", epocas=1, tarefa="gsc12").
-    n_classes e n_frames são calculados a partir da tarefa e do MFCC.
+    mfcc: None = o MFCC do YAML do modelo (cada modelo pode ter o seu) | "padrao" ou "hello_edge" = força o preset.
+    Sobrescritas com valor None são ignoradas. n_classes e n_frames são calculados a partir da tarefa e do MFCC.
     """
     pasta = Path(pasta)
     base = yaml.safe_load(open(pasta / "base.yaml"))
     especifico = yaml.safe_load(open(pasta / f"{modelo}.yaml")) or {}
     hp = _achatar(_mesclar(base, especifico))
+    if mfcc is not None:
+        hp.update(PRESETS_MFCC[mfcc])
     for k, v in sobrescritas.items():
         if v is not None:
             hp[k] = v

@@ -22,6 +22,7 @@ dados:
   # global: média/desvio por coeficiente medidos no TREINO | por_amostra: cada áudio pela sua própria média/desvio
   normalizacao: global
   spec_augment: true        # máscara de tempo e de coeficientes, igual para todos
+  fracao: 1.0               # fração do TREINO usada (1.0 = tudo). Validação e teste são sempre completos
 
 treino:
   epocas: 20
@@ -39,3 +40,4 @@ avaliacao:
   latencia_aquecimento: 30
   latencia_threads: 1       # simula um dispositivo restrito (1 núcleo)
   snrs_db: [20, 10, 5, 0, -5]
+  margem_pp: 2.0            # critério do projeto: um modelo menor "serve" se ficar até 2 p.p. abaixo do baseline (validação)

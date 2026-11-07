@@ -1,4 +1,17 @@
-# CNN 1D — convolução temporal: os 40 coeficientes MFCC são os canais. Responsável: a definir
+# CNN 1D — convolução temporal: os coeficientes MFCC são os canais. Responsável: Guilherme
+#
+# Configuração VENCEDORA da varredura (playground_cnn1d_guilherme.ipynb, 13 configurações x 3 seeds, GSC completo):
+# o MENOR modelo a menos de 2 p.p. (validação) do baseline 40x101 + 64 canais.
+#   hello_edge + canais 48: 24.275 params (23,7 KB int8), 383.280 MACs, acc val 92,46 ± 0,13% (baseline 93,51 ± 0,06%)
+#   canais 32 (com qualquer entrada) já fica ~3 p.p. abaixo, e abaixo de 32 canais a acurácia desaba.
+
+# MFCC do preset hello_edge (10 coeficientes x 49 janelas): entrada 8x menor e MFCC mais barato, sem perda com 64 canais
+dados:
+  n_mfcc: 10
+  janela_ms: 40
+  passo_ms: 20
+  center: false
+
 modelo:
   nome: cnn1d
-  canais: 64
+  canais: 48

@@ -21,7 +21,7 @@ from pathlib import Path
 
 import soundfile as sf
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import BatchSampler, DataLoader, Dataset, RandomSampler, SequentialSampler
 from tqdm.auto import tqdm
 
 from dados.mfcc import N_AMOSTRAS, ExtratorMFCC, calcular_n_frames, ler_audio
@@ -104,6 +104,19 @@ def listar_split(raiz, tarefa="gsc35"):
     return split35 if tarefa == "gsc35" else _montar_12(raiz, split35)
 
 
+#O ID do locutor é o que vem antes de '_nohash_' no nome do arquivo
+def locutor(rel):
+    return rel.split('/')[1].split('_nohash_')[0]
+
+
+def locutores_em_comum(split):
+    """Conferência do split oficial: quantos locutores aparecem em mais de um conjunto (esperado: 0 e 0).
+    Os trechos de silêncio da gsc12 não têm locutor e ficam de fora."""
+    locutores = {k: {locutor(r) for r in v if not r.startswith('_silence_/')} for k, v in split.items()}
+    return {'treino_e_teste': len(locutores['treino'] & locutores['teste']),
+            'treino_e_val': len(locutores['treino'] & locutores['val'])}
+
+
 def ler_trecho(raiz, rel):
     """Lê um áudio do GSC ou um trecho de silêncio ('_silence_/arquivo.wav@inicio')."""
     if rel.startswith("_silence_/"):
@@ -138,44 +151,95 @@ def normalizar(x, media=None, desvio=None):
     - por amostra (media=None): cada áudio é normalizado pela própria média/desvio ao longo do tempo
       (abordagem do notebook do Luciano). Não precisa guardar nada e se adapta ao volume do microfone.
     """
+
     if media is None:
+        #por_amostra: cada áudio usa a PRÓPRIA média e desvio ao longo do tempo
+        #O 1e-6 evita dividir por zero num áudio perfeitamente constante
         return (x - x.mean(dim=-1, keepdim=True)) / (x.std(dim=-1, keepdim=True) + 1e-6)
+
+    #global: (x - mean) / std
     return (x - media) / desvio
 
 
 class DatasetMFCC(Dataset):
-    """Dataset em memória de MFCCs já calculados, com normalização e SpecAugment opcional."""
 
-    def __init__(self, X, y, media, desvio, spec_augment=False):
+    def __init__(self, X, y, media, desvio, aumentar=False):
         super().__init__()
+
+        #Normaliza tudo de uma vez aqui, e não um áudio por __getitem__
         self.X = normalizar(X, media, desvio)
         self.y = y
-        self.spec_augment = spec_augment
+        self.aumentar = aumentar    #SpecAugment ligado ou desligado
 
     def __len__(self):
         return len(self.y)
 
     def __getitem__(self, idx):
+        """Retorna (mfcc: torch.Tensor (40, 101), label: int).
+
+        idx pode ser um índice ou uma LISTA de índices: com a lista (o BatchSampler do criar_dataloaders),
+        o self.X[idx] devolve o batch inteiro (B, n_mfcc, n_frames) com um único fatiamento.
+        """
         x = self.X[idx]
-        if self.spec_augment:
+
+        #Aumento de dados sorteado a CADA vez que o áudio é pedido: na época seguinte as faixas mudam
+        #(nos DataLoaders do projeto fica desligado: o aumento é aplicado no batch, na GPU, pelo spec_augment_batch)
+        if self.aumentar:
             x = spec_augment(x)
+
         return x, self.y[idx]
 
 
 def spec_augment(x, max_tempo=10, max_coef=7):
-    """SpecAugment leve: zera uma faixa de frames e uma faixa de coeficientes (igual para todos os modelos).
+    """x: (n_mfcc, n_frames) de UM áudio. Zera uma faixa de janelas e uma faixa de coeficientes."""
 
-    Força a rede a não depender de um único trecho do áudio — regularização barata.
-    """
+    #Trabalha numa CÓPIA. Sem isso, o x[...] = 0 apagaria o trecho direto no X guardado na memória,
+    #e o áudio ficaria mutilado para sempre, em todas as épocas seguintes
     x = x.clone()
     n_coef, n_frames = x.shape
-    max_coef = min(max_coef, n_coef // 4)     #com 10 MFCCs, no máximo 2 coeficientes
+
+    #Com poucos coeficientes, zerar 7 apagaria quase tudo
+    max_coef = min(max_coef, n_coef // 4)
+
+    #Faixa no tempo
+    #Largura sorteada de 0 a max_tempo janelas (o () pede um sorteio escalar; o .item() vira int do Python)
     t = torch.randint(0, max_tempo + 1, ()).item()
+    #de 0 até o último ponto em que a faixa ainda cabe dentro das 101 janelas
     t0 = torch.randint(0, n_frames - t + 1, ()).item()
-    x[:, t0:t0 + t] = 0
+    x[:, t0:t0 + t] = 0     #zera todos os coeficientes nessas janelas
+
+    #Faixa na frequência
     f = torch.randint(0, max_coef + 1, ()).item()
     f0 = torch.randint(0, n_coef - f + 1, ()).item()
-    x[f0:f0 + f, :] = 0
+    x[f0:f0 + f, :] = 0     #zera essas linhas em todas as janelas
+
+    return x
+
+
+def spec_augment_batch(x, max_tempo=10, max_coef=7):
+    """x: (B, n_mfcc, n_frames), já na GPU. Mesmo sorteio da spec_augment, mas cada áudio do batch
+    recebe as PRÓPRIAS faixas, todas calculadas de uma vez com operações de tensor (sem laço em Python)."""
+    B, n_coef, n_frames = x.shape
+    max_coef = min(max_coef, n_coef // 4)
+
+    #Faixa no tempo: uma largura e um início sorteados POR ÁUDIO (vetores de tamanho B)
+    t = torch.randint(0, max_tempo + 1, (B,), device=x.device)
+    #Início uniforme entre 0 e n_frames - t (a faixa sempre cabe): rand em [0, 1) x (n_frames - t + 1), arredondado para baixo
+    t0 = (torch.rand(B, device=x.device) * (n_frames - t + 1)).floor().long()
+
+    #Faixa na frequência (mesma lógica)
+    f = torch.randint(0, max_coef + 1, (B,), device=x.device)
+    f0 = (torch.rand(B, device=x.device) * (n_coef - f + 1)).floor().long()
+
+    #Máscaras: compara a posição de cada janela/coeficiente com o intervalo sorteado de cada áudio
+    janelas = torch.arange(n_frames, device=x.device)                             # (n_frames,)
+    coefs = torch.arange(n_coef, device=x.device)                                 # (n_coef,)
+    mascara_tempo = (janelas >= t0[:, None]) & (janelas < (t0 + t)[:, None])      # (B, n_frames)
+    mascara_coef = (coefs >= f0[:, None]) & (coefs < (f0 + f)[:, None])           # (B, n_coef)
+
+    #masked_fill devolve um tensor NOVO: o batch original não é alterado (o papel do .clone() da versão antiga)
+    x = x.masked_fill(mascara_tempo[:, None, :], 0)    # a mesma faixa de tempo em todos os coeficientes
+    x = x.masked_fill(mascara_coef[:, :, None], 0)     # a mesma faixa de coeficientes em todas as janelas
     return x
 
 
@@ -204,19 +268,44 @@ def carregar_gsc(hp, raiz, pasta_cache):
 def criar_dataloaders(hp, dados):
     """Normaliza e cria os DataLoaders. Devolve (loaders, (media, desvio)).
 
-    Com normalizacao='global', media/desvio vêm SÓ do treino (medir na validação seria vazamento).
-    Com normalizacao='por_amostra', devolve (None, None).
+    Mesma lógica do DataModuleGSC do playground da CNN 1D:
+    - hp['fracao'] < 1 usa só uma fração do TREINO (validação e teste são sempre completos);
+    - com normalizacao='global', media/desvio vêm SÓ do treino (medir na validação seria vazamento);
+      com normalizacao='por_amostra', devolve (None, None);
+    - o SpecAugment NÃO entra aqui: é aplicado no batch, na GPU, dentro do treinar_uma_epoca (spec_augment_batch).
     """
-    media = desvio = None
+    X_treino, y_treino = dados["treino"]
+
+    #Fração do treino. Val e teste são sempre completos
+    if hp.get("fracao", 1.0) < 1:
+        #Semente fixa: a mesma fração dá sempre os mesmos exemplos
+        gerador = torch.Generator().manual_seed(0)
+        idx = torch.randperm(len(y_treino), generator=gerador)[:int(len(y_treino) * hp["fracao"])]
+        X_treino, y_treino = X_treino[idx], y_treino[idx]
+
+    #Estatísticas medidas SÓ no treino
+    #A validação e o teste usam as estatísticas do TREINO
     if hp.get("normalizacao", "global") == "global":
-        Xtr = dados["treino"][0]
-        media = Xtr.mean(dim=(0, 2), keepdim=True)[0]      #(n_mfcc, 1): uma média por coeficiente
-        desvio = Xtr.std(dim=(0, 2), keepdim=True)[0]
+        media = X_treino.mean(dim=(0, 2), keepdim=True)[0]      #(n_mfcc, 1): uma média por coeficiente
+        desvio = X_treino.std(dim=(0, 2), keepdim=True)[0]
+    else:
+        #por_amostra: nada a guardar
+        media = None
+        desvio = None
+
+    conjuntos = {"treino": DatasetMFCC(X_treino, y_treino, media, desvio)}
+    for nome in dados:
+        if nome != "treino":
+            conjuntos[nome] = DatasetMFCC(*dados[nome], media, desvio)
+
+    #O sampler entrega a LISTA de índices do batch, e o DatasetMFCC devolve o batch inteiro com um fatiamento
+    #(self.X[lista]) em vez de 128 chamadas do __getitem__ + empilhamento. batch_size=None desliga o
+    #empilhamento automático do DataLoader, porque o batch já vem pronto
     loaders = {}
-    for nome, (X, y) in dados.items():
-        eh_treino = nome == "treino"
-        ds = DatasetMFCC(X, y, media, desvio, spec_augment=eh_treino and hp.get("spec_augment", False))
-        loaders[nome] = DataLoader(ds, batch_size=hp["batch_size"], shuffle=eh_treino,
-                                   num_workers=hp.get("num_workers", 0),
-                                   pin_memory=torch.cuda.is_available())
+    for nome, ds in conjuntos.items():
+        if nome == "treino":
+            amostrador = BatchSampler(RandomSampler(ds), batch_size=hp["batch_size"], drop_last=False)
+        else:
+            amostrador = BatchSampler(SequentialSampler(ds), batch_size=hp["batch_size"], drop_last=False)
+        loaders[nome] = DataLoader(ds, batch_size=None, sampler=amostrador)
     return loaders, (media, desvio)

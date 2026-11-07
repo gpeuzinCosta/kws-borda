@@ -9,6 +9,9 @@ Contrato de TODO modelo:
 Uso:
     from modelos import criar_modelo, listar_modelos
     model = criar_modelo("dscnn", hp)
+
+Num playground, escreva a classe no notebook com @registrar_modelo("resnet"): ela substitui o arquivo
+modelos/resnet.py na sessão, e o treino, a varredura, a latência e os gráficos dos módulos passam a usá-la.
 """
 import importlib
 import inspect
@@ -22,6 +25,13 @@ def registrar_modelo(nome, familia=None, referencia=None):
         cls.NOME = nome
         cls.FAMILIA = familia or nome
         cls.REFERENCIA = referencia
+
+        #Um modelo definido FORA da pasta modelos/ (ex.: a ResNet escrita no playground) tem prioridade sobre o
+        #arquivo do repositório: importar o esqueleto depois (o criar_modelo importa todos) não desfaz a troca
+        atual = MODELOS.get(nome)
+        if atual is not None and not atual.__module__.startswith("modelos.") and cls.__module__.startswith("modelos."):
+            return cls
+
         MODELOS[nome] = cls
         return cls
     return decorar

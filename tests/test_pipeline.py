@@ -11,10 +11,10 @@ import torch
 
 from configs import PRESETS_MFCC, carregar_config
 from dados import (CLASSES_GSC, CLASSES_GSC12, ExtratorMFCC, criar_dataloaders, dados_falsos, ler_trecho,
-                   listar_split, normalizar, rotulo)
+                   listar_split, normalizar, rotulo, spec_augment_batch)
 from avaliacao import acuracia, custo, f1_macro, matriz_confusao, medir_latencia, relatorio_por_classe
-from modelos import criar_modelo, esta_implementado, listar_modelos
-from treino import prever, treinar
+from modelos import MODELOS, criar_modelo, esta_implementado, listar_modelos, registrar_modelo
+from treino import carregar_run, prever, treinar, varredura
 
 NOMES = [m["nome"] for m in listar_modelos()]
 
@@ -93,9 +93,93 @@ def test_treino_e_avaliacao_de_ponta_a_ponta(tmp_path):
     assert matriz_confusao(y_pred, y_true, hp["n_classes"]).shape == (12, 12)
     assert len(relatorio_por_classe(y_pred, y_true, CLASSES_GSC12)) == 12
     assert (tmp_path / hist["pasta"].split("/")[-1] / "melhor.pt").exists()
+    assert hist["melhor_epoca"] in (1, 2) and "gap" in hist
+    assert carregar_run(tmp_path, hp, 0) is not None and carregar_run(tmp_path, hp, 0, nome_run="outro") is None
 
 
 def test_latencia_separa_mfcc_e_rede():
     hp = carregar_config("mlp")
-    r = medir_latencia(criar_modelo("mlp", hp), repeticoes=5, aquecimento=1)
-    assert r["mfcc_ms"] > 0 and r["rede_ms"] > 0
+    media, desvio = torch.zeros(hp["n_mfcc"], 1), torch.ones(hp["n_mfcc"], 1)
+    r = medir_latencia(criar_modelo("mlp", hp), hp, media, desvio, rodadas=2, repeticoes=5, aquecimento=1)
+    assert r["mfcc_ms"] > 0 and r["norm_ms"] > 0 and r["rede_ms"] > 0
+    assert r["preproc_ms"] == r["mfcc_ms"] + r["norm_ms"]
+
+
+def test_spec_augment_batch():
+    x = torch.randn(4096, 40, 101)
+    x_original = x.clone()
+    x_aum = spec_augment_batch(x)
+    #Largura média das faixas: 5 de 101 janelas e 3,5 de 40 coeficientes -> ~13% de zeros
+    assert 0.11 < (x_aum == 0).float().mean().item() < 0.16
+    #Cada áudio sorteia as PRÓPRIAS faixas
+    assert torch.unique((x_aum == 0).all(dim=1), dim=0).shape[0] > 100
+    assert torch.equal(x, x_original)    #o batch original não muda
+
+
+def test_dataloader_entrega_batch_pronto():
+    hp = carregar_config("cnn1d", batch_size=32, fracao=0.5)
+    loaders, (media, desvio) = criar_dataloaders(hp, dados_falsos(hp, n=128))
+    xb, yb = next(iter(loaders["treino"]))
+    assert xb.shape == (32, hp["n_mfcc"], hp["n_frames"]) and yb.shape == (32,)
+    assert len(loaders["treino"].dataset) == 64          #metade do treino
+    assert (xb == 0).float().mean() < 0.01               #o aumento NÃO acontece no DataLoader
+    assert media.shape == (hp["n_mfcc"], 1)
+
+
+def test_cnn1d_vencedora_no_yaml():
+    hp = carregar_config("cnn1d")
+    assert (hp["n_mfcc"], hp["n_frames"], hp["canais"]) == (10, 49, 48)
+    assert custo(criar_modelo("cnn1d", hp))["params"] == 24275     #o número da varredura do playground
+
+
+def test_modelo_do_notebook_substitui_o_esqueleto_e_roda_a_varredura(gsc_falso, tmp_path):
+    """O caminho do playground: a classe escrita no notebook entra no registro no lugar do esqueleto."""
+    listar_modelos()                 #garante que o esqueleto já está no registro
+    original = MODELOS["resnet"]
+    try:
+        @registrar_modelo("resnet")
+        class ResNetDeMentira(torch.nn.Module):
+            def __init__(self, n_classes, n_mfcc=40, n_frames=101, canais=4):
+                super().__init__()
+                self.conv = torch.nn.Conv1d(n_mfcc, canais, 3, padding=1)
+                self.head = torch.nn.Linear(canais, n_classes)
+
+            def forward(self, x):
+                return self.head(self.conv(x).mean(-1))
+
+        listar_modelos()    #reimporta os arquivos de modelos/: não pode desfazer a troca
+        assert MODELOS["resnet"] is ResNetDeMentira and esta_implementado("resnet")
+
+        varredura.mfcc_em_memoria.update(nome=None, dados=None)
+        hp = carregar_config("resnet", epocas=1, batch_size=16, **PRESETS_MFCC["hello_edge"])
+        pastas = {"cache": tmp_path, "runs": tmp_path, "resultados": tmp_path}
+        configs = [("baseline", {"canais": 4}), ("canais 2", {"canais": 2})]
+        tabela, modelos = varredura.rodar_varredura("resnet", configs, hp, [0], gsc_falso, pastas,
+                                                    device=torch.device("cpu"))
+        assert list(tabela["experimento"]) == ["baseline", "canais 2"] and list(tabela["canais"]) == [4, 2]
+        assert (tmp_path / "varredura_resnet.csv").exists()
+
+        #Segunda chamada: carrega os runs salvos em vez de treinar de novo
+        tabela2, modelos2 = varredura.rodar_varredura("resnet", configs, hp, [0], gsc_falso, pastas,
+                                                      device=torch.device("cpu"))
+        assert len(tabela2) == 2 and set(modelos2) == {("baseline", 0), ("canais 2", 0)}
+
+        latencias = {n: dict(mfcc_ms=1.0, norm_ms=0.1, rede_ms=0.5, preproc_ms=1.1, preproc_sobre_rede=2.2,
+                             fator_x8=3.0, estavel=True, cpu="x") for n, _ in configs}
+        resumo = varredura.montar_resumo(varredura.anexar_latencias(tabela, latencias), hp["fracao"], 100.0)
+        assert varredura.escolher_vencedor(resumo) == "canais 2"    #com margem enorme, o menor vence
+    finally:
+        MODELOS["resnet"] = original
+
+
+def test_split_oficial_nao_mistura_locutores(gsc_falso):
+    from dados import locutores_em_comum
+    assert locutores_em_comum(listar_split(gsc_falso, "gsc35")) == {"treino_e_teste": 0, "treino_e_val": 0}
+
+
+def test_graficos_do_relatorio_rodam():
+    import matplotlib
+    matplotlib.use("Agg")
+    from avaliacao.graficos import plot_batch, plot_spec_augment
+    plot_spec_augment(torch.randn(10, 49), "yes")
+    plot_batch(torch.randn(8, 10, 49), torch.arange(8), CLASSES_GSC)
