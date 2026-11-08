@@ -205,6 +205,20 @@ def test_split_oficial_nao_mistura_locutores(gsc_falso):
 def test_graficos_do_relatorio_rodam():
     import matplotlib
     matplotlib.use("Agg")
-    from avaliacao.graficos import plot_batch, plot_spec_augment
+    from avaliacao.graficos import cabe_em_microcontroladores, plot_batch, plot_spec_augment
     plot_spec_augment(torch.randn(10, 49), "yes")
     plot_batch(torch.randn(8, 10, 49), torch.arange(8), CLASSES_GSC)
+    import pandas as pd
+    df = pd.DataFrame([dict(modelo="a", kb_fp32=40.0, kb_int8=10.0, kb_ram_int8=1.0),
+                       dict(modelo="b", kb_fp32=400.0, kb_int8=100.0, kb_ram_int8=50.0)])
+    cabe = cabe_em_microcontroladores(df).set_index(["modelo", "mcu"])["cabe"]
+    assert cabe["a", "Arduino Uno (ATmega328P)"] == "sim" and cabe["b", "Arduino Uno (ATmega328P)"] == "não"
+
+
+def test_ram_das_ativacoes():
+    #cnn1d com a entrada hello_edge (10x49): o pico é a primeira camada, então bem acima da entrada e bem abaixo de 1 MB
+    from avaliacao import kb_ativacao_int8
+    hp = carregar_config("cnn1d")
+    model = criar_modelo("cnn1d", hp)
+    kb = kb_ativacao_int8(model)
+    assert 10 * 49 / 1024 < kb < 1024 and model.training     #não deixa o modelo em eval()

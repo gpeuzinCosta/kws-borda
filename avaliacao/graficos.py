@@ -112,3 +112,53 @@ def plot_batch(xb, yb, classes, n=8):
         ax.imshow(xb[i].cpu(), aspect="auto", origin="lower", cmap="magma", vmin=-3, vmax=3)
         ax.set_title(classes[yb[i]])
     plt.tight_layout(); plt.show()
+
+
+#Microcontroladores de referência (KB). Fontes nos datasheets citados em docs/referencias.md
+MICROCONTROLADORES = [
+    dict(mcu="ATmega328P", placa="Arduino Uno", nucleo="AVR 8 bits, 16 MHz", flash_kb=31.5, sram_kb=2),     #32 KB - 0,5 KB do bootloader
+    dict(mcu="MSP430FR5994", placa="LaunchPad MSP-EXP430FR5994", nucleo="MSP430 16 bits, 16 MHz", flash_kb=256, sram_kb=8),  #"Flash" = FRAM
+    dict(mcu="nRF52840", placa="Arduino Nano 33 BLE Sense", nucleo="Cortex-M4F, 64 MHz", flash_kb=1024, sram_kb=256),
+    dict(mcu="ESP32", placa="ESP32-WROOM-32", nucleo="Xtensa LX6 dual-core, 240 MHz", flash_kb=4096, sram_kb=520),  #Flash SPI externa do módulo
+]
+
+
+def cabe_em_microcontroladores(df, rotulo="modelo", mcus=MICROCONTROLADORES):
+    """Os modelos (pesos e ativações em int8) contra a memória de microcontroladores conhecidos.
+
+    Esquerda: Flash (onde ficam os pesos, `kb_int8`; `kb_fp32` em linha clara para comparação).
+    Direita: SRAM (onde ficam as ativações durante a inferência, `kb_ram_int8`, estimativa).
+    Cada barra é a capacidade de um MCU; cada linha vertical é um modelo: se a linha passa do fim da barra,
+    o modelo não cabe. Retorna a tabela modelo x MCU com a fração da memória usada e se cabe.
+    """
+    import pandas as pd
+
+    nomes = [f"{m['placa']}\n({m['mcu']})" for m in mcus]
+    cores = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+    fig, axes = plt.subplots(1, 2, figsize=(15, 4.5), sharey=True)
+    paineis = [(axes[0], "flash_kb", "kb_int8", "Flash: pesos"), (axes[1], "sram_kb", "kb_ram_int8", "SRAM: ativações (estimativa)")]
+    for ax, mem, col, titulo in paineis:
+        ax.barh(nomes, [m[mem] for m in mcus], color="lightgray", edgecolor="gray")
+        for i, m in enumerate(mcus):
+            ax.text(m[mem], i, f" {m[mem]:g} KB", va="center", fontsize=8, color="dimgray")
+        for k, (_, r) in enumerate(df.iterrows()):
+            cor = cores[k % len(cores)]
+            ax.axvline(r[col], color=cor, linestyle="--", linewidth=2, label=f"{r[rotulo]} int8 ({r[col]:.1f} KB)")
+            if col == "kb_int8" and "kb_fp32" in df:
+                ax.axvline(r["kb_fp32"], color=cor, linestyle=":", alpha=0.5, label=f"{r[rotulo]} fp32 ({r['kb_fp32']:.0f} KB)")
+        ax.set_xscale("log")
+        ax.set_xlim(1, max(m[mem] for m in mcus) * 4)
+        ax.set_xlabel("KB (escala log)"); ax.set_title(titulo)
+        ax.grid(True, axis="x", alpha=0.3)
+        ax.legend(fontsize=8, loc="lower right")
+    fig.suptitle("Em quais microcontroladores os modelos cabem (linha além da barra = não cabe)")
+    plt.tight_layout(); plt.show()
+
+    linhas = []
+    for _, r in df.iterrows():
+        for m in mcus:
+            uso_flash, uso_sram = r["kb_int8"] / m["flash_kb"], r["kb_ram_int8"] / m["sram_kb"]
+            linhas.append({rotulo: r[rotulo], "mcu": f"{m['placa']} ({m['mcu']})",
+                           "flash usada (%)": round(100 * uso_flash, 1), "sram usada (%)": round(100 * uso_sram, 1),
+                           "cabe": "sim" if uso_flash <= 1 and uso_sram <= 1 else "não"})
+    return pd.DataFrame(linhas)
