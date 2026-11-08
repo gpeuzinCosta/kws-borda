@@ -10,14 +10,13 @@
 
 ## Microcontroladores (§6.1 do relatório)
 
-- ZHANG, Yundong et al. **Hello Edge** (acima) — orçamento de memória em Flash (pesos) e SRAM (ativações).
 - GOBIESKI, Graham; LUCIA, Brandon; BECKMANN, Nathan. **Intelligence Beyond the Edge: Inference on Intermittent Embedded Systems.** ASPLOS 2019. https://arxiv.org/abs/1810.07751 — redes neurais no MSP430FR5994.
 - WARDEN, Pete; SITUNAYAKE, Daniel. **TinyML: Machine Learning with TensorFlow Lite on Arduino and Ultra-Low-Power Microcontrollers.** O'Reilly, 2019 — exemplo `micro_speech` no Arduino Nano 33 BLE Sense.
 - TENSORFLOW. **How-to Get Started with Machine Learning on Arduino.** 2019. https://blog.tensorflow.org/2019/11/how-to-get-started-with-machine.html
-- MICROCHIP. **ATmega328P Datasheet** (Arduino Uno: 32 KB Flash, 2 KB SRAM). https://www.microchip.com/en-us/product/atmega328p
-- TEXAS INSTRUMENTS. **MSP430FR599x, MSP430FR596x Mixed-Signal Microcontrollers** (256 KB FRAM, 8 KB SRAM, 4 KB dela compartilhada com o acelerador LEA). https://www.ti.com/product/MSP430FR5994
-- NORDIC SEMICONDUCTOR. **nRF52840 Product Specification** (1 MB Flash, 256 KB RAM). https://www.nordicsemi.com/Products/nRF52840
-- ESPRESSIF. **ESP32-WROOM-32 Datasheet** (520 KB SRAM, 4 MB Flash SPI). https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32_datasheet_en.pdf
+- MICROCHIP. **ATmega328P Datasheet** (Arduino Uno: 32 KB Flash). https://www.microchip.com/en-us/product/atmega328p
+- TEXAS INSTRUMENTS. **MSP430FR599x, MSP430FR596x Mixed-Signal Microcontrollers** (256 KB FRAM). https://www.ti.com/product/MSP430FR5994
+- NORDIC SEMICONDUCTOR. **nRF52840 Product Specification** (1 MB Flash). https://www.nordicsemi.com/Products/nRF52840
+- ESPRESSIF. **ESP32-WROOM-32 Datasheet** (4 MB Flash SPI). https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32_datasheet_en.pdf
 
 ## Arquiteturas vistas na disciplina
 
