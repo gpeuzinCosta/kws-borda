@@ -28,7 +28,7 @@ if __name__ == "__main__":
     ap.add_argument("--learning-rate", type=float, dest="learning_rate")
     ap.add_argument("--seeds", type=int, nargs="+")
     ap.add_argument("--tarefa", choices=["gsc35", "gsc12"])
-    ap.add_argument("--mfcc", choices=list(PRESETS_MFCC), help="preset de MFCC (padrão: o do base.yaml)")
+    ap.add_argument("--mfcc", choices=list(PRESETS_MFCC), help="preset de MFCC (padrão: o MFCC do próprio modelo)")
     ap.add_argument("--normalizacao", choices=["global", "por_amostra"])
     ap.add_argument("--dados-falsos", action="store_true", help="MFCC aleatório (testa o pipeline)")
     args = ap.parse_args()

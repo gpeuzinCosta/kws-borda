@@ -25,7 +25,7 @@ kws-borda/
 ├── dados/           funções para gerir os datasets: download, MFCC, GSC v2, DEMAND, AudioMNIST, MSWC-pt
 ├── treino/          loop de treino único (loop.py) + script de treino (treinar.py)
 ├── avaliacao/       métricas, custo (params/MACs), latência, ruído, gráficos + script (avaliar.py)
-├── configs/         hiperparâmetros: base.yaml (comum a todos) + <modelo>.yaml (só o que muda)
+├── configs/         hiperparâmetros: HYPERPARAMETERS (comum a todos) + HP_MODELOS (só o que muda)
 ├── tests/           testes rápidos com dados falsos
 └── docs/            referências
 ```
@@ -68,17 +68,17 @@ Sempre rode a partir da **raiz** do repositório.
    - saída: logits `(B, n_classes)`;
    - a última camada se chama `self.head`.
 3. Troque `IMPLEMENTADO = False` para `True`.
-4. Ajuste os hiperparâmetros em `configs/<modelo>.yaml`.
+4. Ajuste os hiperparâmetros em `HP_MODELOS[<modelo>]` (`configs/__init__.py`).
 5. `pytest` → `python treino/treinar.py --modelo <modelo> --dados-falsos --epocas 1`.
 
 Para um modelo novo (fora dos 5): crie `modelos/<nome>.py` com `@registrar_modelo("<nome>")`, adicione o nome
-à lista em `modelos/__init__.py` e crie `configs/<nome>.yaml`.
+à lista em `modelos/__init__.py` e acrescente `HP_MODELOS[<nome>]` em `configs/__init__.py`.
 
 ## Como colaborar
 
 **A única regra:** todos usam os **módulos comuns** para carregar os dados, treinar e avaliar
 (`dados/`, `treino/` e `avaliacao/`). Cada integrante só escreve o seu modelo em `modelos/<modelo>.py` e os
-hiperparâmetros dele em `configs/<modelo>.yaml`. Assim, todos os modelos são treinados e testados exatamente
+hiperparâmetros dele em `HP_MODELOS[<modelo>]`. Assim, todos os modelos são treinados e testados exatamente
 do mesmo jeito, e a comparação é justa. Se algo nos módulos comuns precisar mudar, a mudança vale para todos,
 então combine com o grupo antes.
 

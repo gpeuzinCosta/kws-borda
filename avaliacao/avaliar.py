@@ -25,7 +25,7 @@ if __name__ == "__main__":
     ap.add_argument("--modelos", nargs="+", default=[m["nome"] for m in listar_modelos()])
     ap.add_argument("--librosa", action="store_true", help="mede também o MFCC com librosa")
     ap.add_argument("--repeticoes", type=int, default=300)
-    ap.add_argument("--mfcc", choices=list(PRESETS_MFCC), help="preset de MFCC (padrão: o do base.yaml)")
+    ap.add_argument("--mfcc", choices=list(PRESETS_MFCC), help="preset de MFCC (padrão: o MFCC do próprio modelo)")
     args = ap.parse_args()
 
     linhas = []

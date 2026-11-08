@@ -10,7 +10,7 @@ Arquitetura:
 Configuração vencedora da varredura (notebooks/experimentos/playground_cnn1d_guilherme.ipynb, 3 seeds):
 entrada hello_edge (10 x 49) + 48 canais = o MENOR modelo a menos de 2 p.p. do baseline (40 x 101, 64 canais).
 24.275 parâmetros (23,7 KB em int8), 383.280 MACs, acurácia de validação 92,46% (baseline: 93,51%).
-Os hiperparâmetros estão em configs/cnn1d.yaml.
+Os hiperparâmetros estão em HP_MODELOS["cnn1d"] (configs/__init__.py).
 """
 import torch
 

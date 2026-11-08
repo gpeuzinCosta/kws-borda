@@ -2,7 +2,7 @@
 
 Trazido dos capítulos 8 e 9 do playground da CNN 1D (notebooks/experimentos/playground_cnn1d_guilherme.ipynb).
 Serve para qualquer modelo do registro: a rede é criada por `criar_modelo(nome_modelo, hp)`, e as configurações
-são uma lista de (nome, o que muda em relação ao hp base), por exemplo CONFIGS_CNN1D.
+são uma lista de (nome, o que muda em relação ao hp base), por exemplo CONFIGS_CNN1D e CONFIGS_RESNET.
 
 Critério do projeto (definido ANTES de ver os resultados, medido na VALIDAÇÃO):
 o vencedor é o MENOR modelo (parâmetros, depois MACs) até `margem_pp` p.p. abaixo do baseline.
@@ -49,7 +49,29 @@ CONFIGS_CNN1D = [
     ('hello_edge + canais 32',   {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 32}),
 ]
 #No playground o baseline era o próprio dicionário (40x101, 64 canais). Aqui cada configuração diz o MFCC e os
-#canais explicitamente, porque o configs/cnn1d.yaml agora guarda o VENCEDOR (10x49, 48 canais), e não o baseline
+#canais explicitamente, porque o HP_MODELOS['cnn1d'] (configs/__init__.py) guarda o VENCEDOR (10x49, 48 canais), e não o baseline
+
+#As configurações da varredura da ResNet (mesmos nomes do playground_resnet_guilherme.ipynb, para reaproveitar os
+#treinos salvos no Drive). As famílias são as do Tang & Lin (2018); 'pool' é lista (não tupla) porque o config.yaml
+#de cada treino não guarda tuplas. MFCC e arquitetura explícitos em cada linha: o HP_MODELOS['resnet'] guarda o
+#VENCEDOR (res15-narrow + hello_edge), e não o baseline (res8 com o MFCC padrão)
+CONFIGS_RESNET = [
+    ('baseline',                    {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 45, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False}),
+    ('sem spec_augment',            {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 45, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False, 'spec_augment': False}),
+    ('norm por_amostra',            {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 45, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False, 'normalizacao': 'por_amostra'}),
+    ('sem weight_decay',            {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 45, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False, 'weight_decay': 0.0}),
+    ('res8-narrow',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 19, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False}),
+    ('res15-narrow',                {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 19, 'n_blocos': 6, 'pool': None, 'dilatacao': True, 'conv_extra': True}),
+    ('res26-narrow',                {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 19, 'n_blocos': 12, 'pool': [2, 2], 'dilatacao': False, 'conv_extra': False}),
+    ('res8 canais 12',              {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 12, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False}),
+    ('res8 canais 8',               {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 8, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False}),
+    ('res8 + hello_edge',           {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 45, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False}),
+    ('res8-narrow + hello_edge',    {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 19, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False}),
+    ('res15-narrow + hello_edge',   {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 19, 'n_blocos': 6, 'pool': None, 'dilatacao': True, 'conv_extra': True}),
+    ('res26-narrow + hello_edge',   {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 19, 'n_blocos': 12, 'pool': [2, 2], 'dilatacao': False, 'conv_extra': False}),
+    ('res8 canais 12 + hello_edge', {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 12, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False}),
+    ('res8 canais 8 + hello_edge',  {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 8, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False}),
+]
 
 
 def aplicar(hp, mudancas, **extra):
@@ -166,8 +188,12 @@ def rodar_varredura(nome_modelo, configs, hp, seeds, raiz, pastas, retreinar=Fal
             modelos[(nome, seed)] = model
             del loaders    #libera as cópias normalizadas dos dados
 
+    #Devolve só as configurações PEDIDAS: o CSV no Drive pode ter outras (ex.: o relatório roda só o baseline e o
+    #vencedor, e o playground deixou as 15 configurações salvas)
     tabela = pd.DataFrame(tabela)
-    return tabela[(tabela['fracao'] == fracao) & (tabela['epocas'] == hp['epocas'])].reset_index(drop=True), modelos
+    nomes = [nome for nome, _ in configs]
+    pedidas = (tabela['fracao'] == fracao) & (tabela['epocas'] == hp['epocas']) & tabela['experimento'].isin(nomes)
+    return tabela[pedidas].reset_index(drop=True), modelos
 
 
 def medir_latencias_varredura(nome_modelo, configs, hp, passadas=3):

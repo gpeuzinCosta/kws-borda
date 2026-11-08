@@ -1,5 +1,0 @@
-# ResNet pequena (estilo res8, Tang & Lin 2018). Responsável: a definir
-modelo:
-  nome: resnet
-  canais: 45
-  n_blocos: 3

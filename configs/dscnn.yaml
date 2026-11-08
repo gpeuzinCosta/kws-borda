@@ -1,5 +1,0 @@
-# DS-CNN (Hello Edge, Zhang et al. 2017) — convoluções separáveis em profundidade. Responsável: a definir
-modelo:
-  nome: dscnn
-  canais: 64
-  n_blocos: 4

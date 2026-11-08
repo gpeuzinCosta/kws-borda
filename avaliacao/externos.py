@@ -32,7 +32,7 @@ def avaliar_ruido(modelos, wavs, y, ruidos, snrs, seed=0):
     """Acurácia de cada modelo em cada SNR. Devolve {nome: {'limpo'|snr: acc}}.
 
     modelos: {nome: dict(model=..., extrator=..., media=..., desvio=...)}. Cada modelo usa a SUA entrada
-    (o MFCC e a normalização do seu configs/<modelo>.yaml; a CNN 1D, por exemplo, usa 10 x 49).
+    (o MFCC e a normalização do seu HP_MODELOS[<modelo>]; a CNN 1D, por exemplo, usa 10 x 49).
     O MESMO trecho de ruído é usado para todos os modelos em cada SNR (comparação justa).
     """
     rng = random.Random(seed)

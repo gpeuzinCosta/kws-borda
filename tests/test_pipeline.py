@@ -25,16 +25,18 @@ def test_config_mescla_base_e_modelo():
     assert hp["n_classes"] == 35 and carregar_config("mlp", tarefa="gsc12")["n_classes"] == 12
 
 
-def test_montar_hp_igual_ao_yaml():
-    #O relatório escreve os hiperparâmetros no notebook: com os valores dos YAMLs, tem que dar o mesmo dicionário
-    import yaml
-    from configs import PASTA_CONFIGS, _achatar
-    comum = _achatar(yaml.safe_load(open(PASTA_CONFIGS / "base.yaml")))
-    especifico = _achatar(yaml.safe_load(open(PASTA_CONFIGS / "cnn1d.yaml")))
-    especifico.pop("modelo")
-    hp = montar_hp(comum, {"cnn1d": especifico}, "cnn1d", epocas=3, fracao=None)
+def test_montar_hp_igual_ao_carregar_config():
+    #O relatório escreve os hiperparâmetros no notebook: com os valores de configs/__init__.py, tem que dar o mesmo dicionário
+    from configs import HYPERPARAMETERS, HP_MODELOS
+    hp = montar_hp(HYPERPARAMETERS, {"cnn1d": HP_MODELOS["cnn1d"]}, "cnn1d", epocas=3, fracao=None)
     assert hp == carregar_config("cnn1d", epocas=3)
     assert (hp["n_mfcc"], hp["n_frames"], hp["canais"]) == (10, 49, 48)
+
+
+def test_carregar_config_nao_altera_os_padroes():
+    hp = carregar_config("mlp")
+    hp["seeds"].append(99)
+    assert carregar_config("mlp")["seeds"] == [0, 1, 2]
 
 
 @pytest.mark.parametrize("preset,formato", [("padrao", (40, 101)), ("hello_edge", (10, 49))])
@@ -138,10 +140,16 @@ def test_dataloader_entrega_batch_pronto():
     assert media.shape == (hp["n_mfcc"], 1)
 
 
-def test_cnn1d_vencedora_no_yaml():
+def test_cnn1d_vencedora_nos_padroes():
     hp = carregar_config("cnn1d")
     assert (hp["n_mfcc"], hp["n_frames"], hp["canais"]) == (10, 49, 48)
     assert custo(criar_modelo("cnn1d", hp))["params"] == 24275     #o número da varredura do playground
+
+
+def test_resnet_vencedora_nos_padroes():
+    hp = carregar_config("resnet")
+    assert (hp["n_mfcc"], hp["n_frames"]) == (10, 49)
+    assert custo(criar_modelo("resnet", hp))["params"] == 43640     #res15-narrow, o número da varredura do playground
 
 
 def test_modelo_do_notebook_substitui_o_esqueleto_e_roda_a_varredura(gsc_falso, tmp_path):
@@ -175,6 +183,11 @@ def test_modelo_do_notebook_substitui_o_esqueleto_e_roda_a_varredura(gsc_falso, 
         tabela2, modelos2 = varredura.rodar_varredura("resnet", configs, hp, [0], gsc_falso, pastas,
                                                       device=torch.device("cpu"))
         assert len(tabela2) == 2 and set(modelos2) == {("baseline", 0), ("canais 2", 0)}
+
+        #Só uma parte das configurações (como no relatório): o CSV tem as duas, mas só a pedida volta
+        tabela3, _ = varredura.rodar_varredura("resnet", configs[:1], hp, [0], gsc_falso, pastas,
+                                               device=torch.device("cpu"))
+        assert list(tabela3["experimento"]) == ["baseline"]
 
         latencias = {n: dict(mfcc_ms=1.0, norm_ms=0.1, rede_ms=0.5, preproc_ms=1.1, preproc_sobre_rede=2.2,
                              fator_x8=3.0, estavel=True, cpu="x") for n, _ in configs}

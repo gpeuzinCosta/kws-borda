@@ -2,7 +2,7 @@
 
 Mesmo otimizador (AdamW), mesmo agendador (OneCycle), mesma perda (entropia cruzada com label smoothing),
 mesmo aumento de dados (SpecAugment no batch, na GPU). Só os hiperparâmetros de cada arquitetura mudam
-(configs/<modelo>.yaml). Assim, diferenças de acurácia vêm da ARQUITETURA, não de truques de treino.
+(HP_MODELOS em configs/__init__.py). Assim, diferenças de acurácia vêm da ARQUITETURA, não de truques de treino.
 
 treinar_uma_epoca e validar_uma_epoca vêm do playground da CNN 1D (notebooks/experimentos/).
 """
