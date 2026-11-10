@@ -1,32 +1,220 @@
-"""DS-CNN — convoluções separáveis em profundidade (Hello Edge, DS-CNN-S).
+"""DS-CNN-S baseada no artigo Hello Edge.
 
-Ideia: uma Conv 3x3 comum com C canais custa C*C*9 pesos. A separável divide em
-  (1) depthwise: um filtro 3x3 POR canal (C*9)  +  (2) pointwise: Conv 1x1 que mistura canais (C*C).
-~8-9x menos parâmetros e MACs com acurácia parecida — foi feita para microcontroladores.
+Arquitetura:
 
-Arquitetura-alvo:
-    entrada (B, 1, T, F) -> Conv2d(1, 64, (10, 4), stride 2) -> BN -> ReLU
-    -> 4 x [DepthwiseConv 3x3 -> BN -> ReLU -> PointwiseConv 1x1 -> BN -> ReLU]
-    -> média global -> Linear(64, n_classes)
+    entrada (B, 1, tempo, frequência)
 
-Implemente __init__ e forward, mude IMPLEMENTADO para True
-e rode `pytest` para conferir o contrato de entrada/saída.
+    -> Conv2d comum:
+       1 -> 64 canais
+       kernel 10x4
+       stride 2x2
+       BatchNorm
+       ReLU
+
+    -> 4 blocos:
+       DepthwiseConv 3x3
+       BatchNorm
+       ReLU
+       PointwiseConv 1x1
+       BatchNorm
+       ReLU
+
+    -> média global
+    -> Linear
 """
+
 import torch
 
 from modelos import registrar_modelo
 
 
-@registrar_modelo("dscnn", familia="DS-CNN", referencia="Zhang et al. 2017 — Hello Edge (arXiv:1711.07128)")
-class DSCNN(torch.nn.Module):
-    IMPLEMENTADO = False
+class BlocoDepthwiseSeparable(torch.nn.Module):
 
-    def __init__(self, n_classes, n_mfcc=40, n_frames=101, canais=64, n_blocos=4):
+    def __init__(self, canais):
         super().__init__()
-        #TODO: definir as camadas (ver arquitetura-alvo na docstring do módulo)
-        #Mantenha a última camada com o nome `self.head` (usada no few-shot do MSWC-pt)
-        raise NotImplementedError("DSCNN ainda não implementado")
+
+        # Um kernel 3x3 separado para cada canal
+        self.depthwise = torch.nn.Conv2d(
+            in_channels=canais,
+            out_channels=canais,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            groups=canais,
+            bias=False
+        )
+
+        self.bn_depthwise = torch.nn.BatchNorm2d(
+            canais
+        )
+
+        # Convolução comum 1x1 para misturar os canais
+        self.pointwise = torch.nn.Conv2d(
+            in_channels=canais,
+            out_channels=canais,
+            kernel_size=1,
+            stride=1,
+            bias=False
+        )
+
+        self.bn_pointwise = torch.nn.BatchNorm2d(
+            canais
+        )
+
+        self.relu = torch.nn.ReLU()
 
     def forward(self, x):
-        #x: (B, n_mfcc, n_frames)  ->  logits (B, n_classes)
-        raise NotImplementedError
+
+        x = self.depthwise(x)
+        x = self.bn_depthwise(x)
+        x = self.relu(x)
+
+        x = self.pointwise(x)
+        x = self.bn_pointwise(x)
+        x = self.relu(x)
+
+        return x
+
+
+@registrar_modelo(
+    "dscnn",
+    familia="DS-CNN",
+    referencia=(
+        "Zhang et al. 2017 — "
+        "Hello Edge (arXiv:1711.07128)"
+    )
+)
+class DSCNN(torch.nn.Module):
+
+    IMPLEMENTADO = True
+
+    def __init__(
+        self,
+        n_classes,
+        n_mfcc=40,
+        n_frames=101,
+        canais=64,
+        n_blocos=4
+    ):
+        super().__init__()
+
+        def calcular_padding_same(
+            tamanho,
+            kernel,
+            stride
+        ):
+            tamanho_saida = (
+                tamanho + stride - 1
+            ) // stride
+
+            padding_total = max(
+                (
+                    tamanho_saida - 1
+                ) * stride
+                + kernel
+                - tamanho,
+                0
+            )
+
+            padding_inicio = (
+                padding_total // 2
+            )
+
+            padding_fim = (
+                padding_total
+                - padding_inicio
+            )
+
+            return (
+                padding_inicio,
+                padding_fim
+            )
+
+        # O artigo usa padding SAME.
+        # PyTorch exige padding manual para kernel par
+        # combinado com stride maior que 1.
+
+        padding_tempo = calcular_padding_same(
+            tamanho=n_frames,
+            kernel=10,
+            stride=2
+        )
+
+        padding_frequencia = calcular_padding_same(
+            tamanho=n_mfcc,
+            kernel=4,
+            stride=2
+        )
+
+        # ZeroPad2d:
+        # esquerda, direita, cima, baixo
+        self.padding_inicial = torch.nn.ZeroPad2d(
+            (
+                padding_frequencia[0],
+                padding_frequencia[1],
+                padding_tempo[0],
+                padding_tempo[1]
+            )
+        )
+
+        # Primeira convolução comum
+        self.conv_inicial = torch.nn.Conv2d(
+            in_channels=1,
+            out_channels=canais,
+            kernel_size=(10, 4),
+            stride=(2, 2),
+            bias=False
+        )
+
+        self.bn_inicial = torch.nn.BatchNorm2d(
+            canais
+        )
+
+        self.relu = torch.nn.ReLU()
+
+        self.blocos = torch.nn.Sequential(
+            *[
+                BlocoDepthwiseSeparable(
+                    canais=canais
+                )
+                for _ in range(n_blocos)
+            ]
+        )
+
+        self.media_global = (
+            torch.nn.AdaptiveAvgPool2d(
+                output_size=(1, 1)
+            )
+        )
+
+        # O nome head é usado pelo few-shot do projeto
+        self.head = torch.nn.Linear(
+            in_features=canais,
+            out_features=n_classes
+        )
+
+    def forward(self, x):
+
+        # Entrada do pipeline:
+        # (B, n_mfcc, n_frames)
+
+        # Artigo:
+        # (B, 1, tempo, frequência)
+        x = x.transpose(1, 2)
+        x = x.unsqueeze(1)
+
+        x = self.padding_inicial(x)
+
+        x = self.conv_inicial(x)
+        x = self.bn_inicial(x)
+        x = self.relu(x)
+
+        x = self.blocos(x)
+
+        x = self.media_global(x)
+
+        # (B, canais, 1, 1)
+        # -> (B, canais)
+        x = x.flatten(1)
+
+        return self.head(x)

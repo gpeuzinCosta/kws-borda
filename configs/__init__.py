@@ -77,10 +77,16 @@ HP_MODELOS = {
                'canais': 19, 'n_blocos': 6, 'pool': None, 'dilatacao': True, 'conv_extra': True},
 
     #DS-CNN (Hello Edge, Zhang et al. 2017) — convoluções separáveis em profundidade
-    'dscnn': {'canais': 64, 'n_blocos': 4},
-
+    'dscnn': {
+        'n_mfcc': 10,
+        'janela_ms': 40,
+        'passo_ms': 20,
+        'center': False,
+        'canais': 64,
+        'n_blocos': 4
+},
     #Atenção — KWT-tiny (Berg et al. 2021): cada frame do MFCC vira um token
-    'atencao': {'d_model': 64, 'n_camadas': 2, 'n_heads': 2, 'dropout': 0.1,
+    'atencao': {'d_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0,
                 'learning_rate': 0.001},     #Transformers costumam pedir lr menor
 }
 
