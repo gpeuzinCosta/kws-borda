@@ -60,9 +60,9 @@ HYPERPARAMETERS = {
 #Só o que MUDA em cada modelo
 HP_MODELOS = {
     #MLP — baseline: achata o MFCC e passa por camadas densas.
-    #Versão do Luciano (notebooks/experimentos/Projeto_MLP.ipynb, 79,6% val em gsc12 + MFCC hello_edge):
-    #hidden 128, n_camadas 3, dropout 0.1, batchnorm False
-    'mlp': {'hidden': 64, 'n_camadas': 2, 'dropout': 0.1, 'batchnorm': True},
+    #Versão do Luciano (notebooks/experimentos/Projeto_MLP.ipynb, 79,6% val em gsc12 + MFCC hello_edge)
+    'mlp': {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False,       #MFCC hello_edge: 10 x 49
+            'hidden': 128, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False},
 
     #CNN 1D — vencedora da varredura (playground_cnn1d_guilherme.ipynb, 13 configurações x 3 seeds, GSC completo):
     #o MENOR modelo a menos de 2 p.p. (validação) do baseline 40x101 + 64 canais.
@@ -84,7 +84,8 @@ HP_MODELOS = {
         'center': False,
         'canais': 64,
         'n_blocos': 4
-},
+    },
+
     #Atenção — KWT-tiny (Berg et al. 2021): cada frame do MFCC vira um token
     'atencao': {'d_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0,
                 'learning_rate': 0.001},     #Transformers costumam pedir lr menor
