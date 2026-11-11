@@ -2,7 +2,8 @@
 
 Trazido dos capítulos 8 e 9 do playground da CNN 1D (notebooks/experimentos/playground_cnn1d_guilherme.ipynb).
 Serve para qualquer modelo do registro: a rede é criada por `criar_modelo(nome_modelo, hp)`, e as configurações
-são uma lista de (nome, o que muda em relação ao hp base), por exemplo CONFIGS_CNN1D e CONFIGS_RESNET.
+são uma lista de (nome, o que muda em relação ao hp base): CONFIGS_CNN1D, CONFIGS_RESNET, CONFIGS_MLP,
+CONFIGS_DSCNN e CONFIGS_ATENCAO.
 
 Critério do projeto (definido ANTES de ver os resultados, medido na VALIDAÇÃO):
 o vencedor é o MENOR modelo (parâmetros, depois MACs) até `margem_pp` p.p. abaixo do baseline.
@@ -71,6 +72,58 @@ CONFIGS_RESNET = [
     ('res26-narrow + hello_edge',   {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 19, 'n_blocos': 12, 'pool': [2, 2], 'dilatacao': False, 'conv_extra': False}),
     ('res8 canais 12 + hello_edge', {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 12, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False}),
     ('res8 canais 8 + hello_edge',  {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 8, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False}),
+]
+
+#As varreduras de MLP, DS-CNN e Atenção rodam inteiras no notebook principal (§8.1, §8.4 e §8.5). Mesmo desenho das
+#anteriores: o baseline é a arquitetura de partida com o MFCC padrão (40x101), depois as 3 variações de treino,
+#modelos menores e a entrada hello_edge (10x49). MFCC e arquitetura explícitos em cada linha
+
+#MLP: arquitetura de partida = a do Projeto_MLP.ipynb (3 camadas de 128, dropout 0.1, sem BatchNorm)
+CONFIGS_MLP = [
+    ('baseline',                  {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 128, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False}),
+    ('sem spec_augment',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 128, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False, 'spec_augment': False}),
+    ('norm por_amostra',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 128, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False, 'normalizacao': 'por_amostra'}),
+    ('sem weight_decay',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 128, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False, 'weight_decay': 0.0}),
+    ('hidden 64',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 64, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False}),
+    ('hidden 32',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 32, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False}),
+    ('2 camadas',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 128, 'n_camadas': 2, 'dropout': 0.1, 'batchnorm': False}),
+    ('com batchnorm',             {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 128, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': True}),
+    ('entrada hello_edge',        {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'hidden': 128, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False}),
+    ('hello_edge + hidden 64',    {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'hidden': 64, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False}),
+    ('hello_edge + hidden 32',    {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'hidden': 32, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False}),
+    ('hello_edge + 2 camadas',    {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'hidden': 128, 'n_camadas': 2, 'dropout': 0.1, 'batchnorm': False}),
+]
+
+#DS-CNN: arquitetura de partida = DS-CNN-S do Hello Edge (64 canais, 4 blocos separáveis)
+CONFIGS_DSCNN = [
+    ('baseline',                  {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'n_blocos': 4}),
+    ('sem spec_augment',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'n_blocos': 4, 'spec_augment': False}),
+    ('norm por_amostra',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'n_blocos': 4, 'normalizacao': 'por_amostra'}),
+    ('sem weight_decay',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'n_blocos': 4, 'weight_decay': 0.0}),
+    ('canais 32',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 32, 'n_blocos': 4}),
+    ('canais 16',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 16, 'n_blocos': 4}),
+    ('2 blocos',                  {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'n_blocos': 2}),
+    ('entrada hello_edge',        {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 64, 'n_blocos': 4}),
+    ('hello_edge + canais 48',    {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 48, 'n_blocos': 4}),
+    ('hello_edge + canais 32',    {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 32, 'n_blocos': 4}),
+    ('hello_edge + canais 16',    {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 16, 'n_blocos': 4}),
+    ('hello_edge + 2 blocos',     {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'canais': 64, 'n_blocos': 2}),
+]
+
+#Atenção: arquitetura de partida = KWT com d_model 64, 3 camadas, 1 cabeça e sem dropout (o lr 1e-3 vem do HP_MODELOS)
+CONFIGS_ATENCAO = [
+    ('baseline',                  {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0}),
+    ('sem spec_augment',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0, 'spec_augment': False}),
+    ('norm por_amostra',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0, 'normalizacao': 'por_amostra'}),
+    ('sem weight_decay',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0, 'weight_decay': 0.0}),
+    ('d_model 32',                {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 32, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0}),
+    ('d_model 16',                {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 16, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0}),
+    ('2 camadas',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 64, 'n_camadas': 2, 'n_heads': 1, 'dropout': 0}),
+    ('1 camada',                  {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 64, 'n_camadas': 1, 'n_heads': 1, 'dropout': 0}),
+    ('entrada hello_edge',        {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'd_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0}),
+    ('hello_edge + d_model 32',   {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'd_model': 32, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0}),
+    ('hello_edge + d_model 16',   {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'd_model': 16, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0}),
+    ('hello_edge + 1 camada',     {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'd_model': 64, 'n_camadas': 1, 'n_heads': 1, 'dropout': 0}),
 ]
 
 

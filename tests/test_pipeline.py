@@ -21,7 +21,8 @@ NOMES = [m["nome"] for m in listar_modelos()]
 
 def test_config_mescla_base_e_modelo():
     hp = carregar_config("mlp", epocas=1)
-    assert hp["modelo"] == "mlp" and hp["epocas"] == 1 and hp["n_mfcc"] == 40
+    assert hp["modelo"] == "mlp" and hp["epocas"] == 1 and hp["n_mfcc"] == 10    #o MLP usa o MFCC hello_edge
+    assert carregar_config("dscnn", epocas=1)["n_mfcc"] == 10 and carregar_config("atencao", epocas=1)["n_mfcc"] == 40
     assert hp["n_classes"] == 35 and carregar_config("mlp", tarefa="gsc12")["n_classes"] == 12
 
 
@@ -150,6 +151,19 @@ def test_resnet_vencedora_nos_padroes():
     hp = carregar_config("resnet")
     assert (hp["n_mfcc"], hp["n_frames"]) == (10, 49)
     assert custo(criar_modelo("resnet", hp))["params"] == 43640     #res15-narrow, o número da varredura do playground
+
+
+@pytest.mark.parametrize("nome,configs", [("mlp", varredura.CONFIGS_MLP), ("dscnn", varredura.CONFIGS_DSCNN),
+                                           ("atencao", varredura.CONFIGS_ATENCAO)])
+def test_configs_das_varreduras_do_relatorio(nome, configs):
+    """As varreduras das §8.1, §8.4 e §8.5: nomes únicos, baseline primeiro e todo modelo cumpre o contrato."""
+    nomes = [n for n, _ in configs]
+    assert nomes[0] == "baseline" and len(set(nomes)) == len(nomes)
+    hp = carregar_config(nome)
+    for n, mudancas in configs:
+        hp_exp = varredura.aplicar(hp, mudancas)
+        model = criar_modelo(nome, hp_exp).eval()
+        assert model(torch.randn(2, hp_exp["n_mfcc"], hp_exp["n_frames"])).shape == (2, hp_exp["n_classes"]), n
 
 
 def test_modelo_do_notebook_substitui_o_esqueleto_e_roda_a_varredura(gsc_falso, tmp_path):
