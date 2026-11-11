@@ -2,6 +2,7 @@
 
     python treino/treinar.py --modelo mlp
     python treino/treinar.py --modelo dscnn --epocas 30 --seeds 0 1 2
+    python treino/treinar.py --modelo resnet --epocas 100 --paciencia 10      # early stop (ReduceLROnPlateau)
     python treino/treinar.py --modelo mlp --dados-falsos --epocas 1     # teste rápido, sem baixar nada
     python treino/treinar.py --modelo mlp --tarefa gsc12 --mfcc hello_edge --normalizacao por_amostra
 """
@@ -26,6 +27,7 @@ if __name__ == "__main__":
     ap.add_argument("--epocas", type=int)
     ap.add_argument("--batch-size", type=int, dest="batch_size")
     ap.add_argument("--learning-rate", type=float, dest="learning_rate")
+    ap.add_argument("--paciencia", type=int, help="early stop: épocas sem melhora na validação (liga o ReduceLROnPlateau)")
     ap.add_argument("--seeds", type=int, nargs="+")
     ap.add_argument("--tarefa", choices=["gsc35", "gsc12"])
     ap.add_argument("--mfcc", choices=list(PRESETS_MFCC), help="preset de MFCC (padrão: o MFCC do próprio modelo)")
@@ -35,7 +37,9 @@ if __name__ == "__main__":
 
     hp = carregar_config(args.modelo, epocas=args.epocas, batch_size=args.batch_size,
                          learning_rate=args.learning_rate, seeds=args.seeds, tarefa=args.tarefa,
-                         normalizacao=args.normalizacao, **PRESETS_MFCC.get(args.mfcc, {}))
+                         normalizacao=args.normalizacao, paciencia=args.paciencia,
+                         scheduler="plateau" if args.paciencia is not None else None,
+                         **PRESETS_MFCC.get(args.mfcc, {}))
     pastas = pastas_projeto()
     print(hp)
 
@@ -54,4 +58,4 @@ if __name__ == "__main__":
         registrar(pastas["resultados"] / "resultados.csv", hp["modelo"], seed,
                   dataset="falso" if args.dados_falsos else "gsc_v2", experimento=rotulo_experimento(hp),
                   acc=acuracia(y_pred, y_true), f1=f1_macro(y_pred, y_true),
-                  epocas=hp["epocas"], **custo(model.cpu()), run=hist.get("pasta"))
+                  epocas=hist["epocas_treinadas"], **custo(model.cpu()), run=hist.get("pasta"))

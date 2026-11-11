@@ -97,14 +97,29 @@ def prever(model, dataloader, device=None):
 
 
 def _criar_otimizacao(model, hp, passos_totais):
+    """Devolve (optimizer, scheduler, por_batch). por_batch=True: scheduler.step() a cada batch (OneCycle);
+    False: scheduler.step(acc_val) uma vez por época (ReduceLROnPlateau)."""
     optimizer = torch.optim.AdamW(model.parameters(), lr=hp["learning_rate"], weight_decay=hp["weight_decay"])
-    scheduler = None
+    scheduler, por_batch = None, False
     if hp.get("scheduler") == "onecycle":
         #OneCycle: o lr começa pequeno, sobe até learning_rate e desce suave até quase zero no fim.
         #total_steps = batches por época x épocas, porque o scheduler.step() roda a cada BATCH
         scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hp["learning_rate"],
                                                         total_steps=passos_totais)
-    return optimizer, scheduler
+        por_batch = True
+    elif hp.get("scheduler") == "plateau":
+        #ReduceLROnPlateau: lr constante enquanto a acurácia de validação melhora; multiplica por plateau_fator
+        #após plateau_paciencia épocas sem melhora. Não depende do total de épocas, por isso combina com o early stop
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max",
+                                                               factor=hp.get("plateau_fator", 0.5),
+                                                               patience=hp.get("plateau_paciencia", 3))
+    return optimizer, scheduler, por_batch
+
+
+def mesma_politica(hp_run, hp):
+    """Um run salvo só serve se foi treinado com a mesma fração, teto de épocas, scheduler e early stop."""
+    chaves = [("fracao", 1.0), ("epocas", None), ("scheduler", "onecycle"), ("paciencia", None)]
+    return all(hp_run.get(k, padrao) == hp.get(k, padrao) for k, padrao in chaves)
 
 
 def treinar(model, loaders, hp, seed=0, pasta_runs=None, device=None, verbose=True, nome_run=None):
@@ -119,7 +134,7 @@ def treinar(model, loaders, hp, seed=0, pasta_runs=None, device=None, verbose=Tr
     model = model.to(device)
 
     epocas = hp["epocas"]
-    optimizer, scheduler = _criar_otimizacao(model, hp, epocas * len(loaders["treino"]))
+    optimizer, scheduler, por_batch = _criar_otimizacao(model, hp, epocas * len(loaders["treino"]))
     criterion = torch.nn.CrossEntropyLoss(label_smoothing=hp.get("label_smoothing", 0.0))
 
     #O SpecAugment é aplicado no batch, dentro do treinar_uma_epoca
@@ -128,41 +143,67 @@ def treinar(model, loaders, hp, seed=0, pasta_runs=None, device=None, verbose=Tr
     else:
         aumento = None
 
-    hist = {"treino": [], "val": [], "acc": [], "tempo_s": []}
+    #Early stop: para após `paciencia` épocas seguidas sem a acc de validação melhorar mais que `min_delta`
+    paciencia = hp.get("paciencia")
+    min_delta = hp.get("min_delta", 0.0)
+    epocas_sem_melhora = 0
+
+    hist = {"treino": [], "val": [], "acc": [], "lr": [], "tempo_s": []}
     melhor_acc, melhor_estado = -1.0, None
+    parou_cedo = False
     inicio = time.time()
 
     for epoca in range(1, epocas + 1):
         t0 = time.time()
-        perda_treino = treinar_uma_epoca(model, loaders["treino"], criterion, device, optimizer, scheduler, aumento)
+        lr = optimizer.param_groups[0]["lr"]    #lr no início da época (o OneCycle ainda muda dentro dela)
+        perda_treino = treinar_uma_epoca(model, loaders["treino"], criterion, device, optimizer,
+                                         scheduler if por_batch else None, aumento)
         perda_val, acc_val = validar_uma_epoca(model, loaders["val"], criterion, device)
+        if scheduler is not None and not por_batch:
+            scheduler.step(acc_val)    #ReduceLROnPlateau olha a acurácia de validação
 
         hist["treino"].append(perda_treino)
         hist["val"].append(perda_val)
         hist["acc"].append(acc_val)
+        hist["lr"].append(lr)
         hist["tempo_s"].append(time.time() - t0)
 
         #Guarda os pesos da melhor época na validação.
         #O .clone() é essencial: o state_dict devolve referências aos pesos, que o treino continua alterando.
         #Sem a cópia, o "melhor estado" mudaria junto com o modelo
+        #Para o early stop, só conta como melhora se superar o melhor por mais que min_delta
+        if acc_val > melhor_acc + min_delta:
+            epocas_sem_melhora = 0
+        else:
+            epocas_sem_melhora += 1
         if acc_val > melhor_acc:
             melhor_acc = acc_val
             melhor_estado = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
 
         if verbose:
             print(f"época {epoca:2d}/{epocas} | perda treino: {perda_treino:.4f} | "
-                  f"perda val: {perda_val:.4f} | acurácia val: {acc_val*100:.2f}% | {hist['tempo_s'][-1]:.0f}s")
+                  f"perda val: {perda_val:.4f} | acurácia val: {acc_val*100:.2f}% | lr: {lr:.2e} | "
+                  f"{hist['tempo_s'][-1]:.0f}s")
+
+        if paciencia is not None and epocas_sem_melhora >= paciencia:
+            parou_cedo = True
+            if verbose:
+                print(f"Early stop na época {epoca}: {paciencia} épocas sem melhorar a acurácia de validação")
+            break
 
     model.load_state_dict(melhor_estado)   #devolve os pesos da melhor época, não os da última
 
     hist["melhor_acc"] = melhor_acc
     hist["melhor_epoca"] = hist["acc"].index(melhor_acc) + 1
     hist["acc_final"] = hist["acc"][-1]
+    hist["epocas_treinadas"] = len(hist["acc"])
+    hist["parou_cedo"] = parou_cedo
     hist["gap"] = hist["val"][-1] - hist["treino"][-1]
     hist["tempo_min"] = (time.time() - inicio) / 60
 
     if verbose:
-        print(f"Melhor acurácia val: {melhor_acc*100:.2f}% (época {hist['melhor_epoca']})")
+        print(f"Melhor acurácia val: {melhor_acc*100:.2f}% (época {hist['melhor_epoca']} de "
+              f"{hist['epocas_treinadas']} treinadas)")
 
     if pasta_runs is not None:
         _salvar_run(model, hp, hist, seed, pasta_runs, nome_run)

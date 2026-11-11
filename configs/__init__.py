@@ -43,8 +43,14 @@ HYPERPARAMETERS = {
     'learning_rate': 0.003,
     'weight_decay': 0.01,
     'otimizador': 'adamw',
-    'scheduler': 'onecycle',
+    'scheduler': 'onecycle',    #'onecycle' | 'plateau' (ReduceLROnPlateau, para usar com o early stop)
     'label_smoothing': 0.1,
+    #Early stop (desligado aqui para reproduzir os resultados dos playgrounds, 20 épocas + OneCycle).
+    #O notebook principal liga: epocas=100 (teto), paciencia=10, scheduler='plateau'
+    'paciencia': None,          #para após N épocas sem melhorar a acc de validação (None = desliga)
+    'min_delta': 0.0005,        #melhora mínima (0,05 p.p.) para zerar a contagem da paciência
+    'plateau_fator': 0.5,       #ReduceLROnPlateau: lr x fator quando a validação estagna
+    'plateau_paciencia': 3,     #épocas sem melhora antes de reduzir o lr
     'seeds': [0, 1, 2],         #3 rodadas independentes para média ± desvio
     'num_workers': 0,           #MFCC já está em memória: processos extras só adicionam overhead
 

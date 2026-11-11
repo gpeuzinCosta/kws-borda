@@ -31,7 +31,7 @@ from configs import escolher_device
 from dados.mfcc import calcular_n_frames
 from dados.speech_commands import carregar_gsc, classes_da_tarefa, criar_dataloaders, nome_cache
 from modelos import criar_modelo
-from treino.loop import carregar_run, prever, treinar
+from treino.loop import carregar_run, mesma_politica, prever, treinar
 
 #As configurações da varredura da CNN 1D (mesma lista do playground)
 CONFIGS_CNN1D = [
@@ -175,7 +175,8 @@ def registrar_linha(tabela, nome, seed, hp, hist, val, teste):
         'params': c['params'], 'kb_int8': round(c['kb_int8'], 1), 'macs': c['macs'],
         'acc_val': hist['melhor_acc'],            #melhor acurácia de VALIDAÇÃO (a que seleciona)
         'f1_val': val['f1'],
-        'melhor_epoca': hist['melhor_epoca'], 'gap': hist['gap'], 'tempo_min': hist['tempo_min'],
+        'melhor_epoca': hist['melhor_epoca'], 'paciencia': hp.get('paciencia'),
+        'epocas_treinadas': hist.get('epocas_treinadas', len(hist['acc'])), 'gap': hist['gap'], 'tempo_min': hist['tempo_min'],
         'acc_teste': teste['acc'], 'f1_teste': teste['f1'],    #só para reportar: nada é escolhido com elas
     })
 
@@ -212,11 +213,11 @@ def rodar_varredura(nome_modelo, configs, hp, seeds, raiz, pastas, retreinar=Fal
             loaders, _ = criar_dataloaders(hp_exp, carregar_dados(hp_exp, raiz, pastas['cache']))
             model = criar_modelo(nome_modelo, hp_exp)
 
-            #Já treinado antes (no Drive)? Só serve se for da mesma fração e do mesmo nº de épocas
+            #Já treinado antes (no Drive)? Só serve se for da mesma fração, teto de épocas, scheduler e early stop
             run = None
             if not retreinar:
                 run = carregar_run(pastas['runs'], hp_exp, seed, nome_run=nome)
-                if run is not None and (run[2].get('fracao', 1.0) != fracao or run[2]['epocas'] != hp_exp['epocas']):
+                if run is not None and not mesma_politica(run[2], hp_exp):
                     run = None
 
             if run is not None:

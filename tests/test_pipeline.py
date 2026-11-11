@@ -14,7 +14,7 @@ from dados import (CLASSES_GSC, CLASSES_GSC12, ExtratorMFCC, criar_dataloaders, 
                    listar_split, normalizar, rotulo, spec_augment_batch)
 from avaliacao import acuracia, custo, f1_macro, matriz_confusao, medir_latencia, relatorio_por_classe
 from modelos import MODELOS, criar_modelo, esta_implementado, listar_modelos, registrar_modelo
-from treino import carregar_run, prever, treinar, varredura
+from treino import carregar_run, mesma_politica, prever, treinar, varredura
 
 NOMES = [m["nome"] for m in listar_modelos()]
 
@@ -110,6 +110,17 @@ def test_treino_e_avaliacao_de_ponta_a_ponta(tmp_path):
     assert (tmp_path / hist["pasta"].split("/")[-1] / "melhor.pt").exists()
     assert hist["melhor_epoca"] in (1, 2) and "gap" in hist
     assert carregar_run(tmp_path, hp, 0) is not None and carregar_run(tmp_path, hp, 0, nome_run="outro") is None
+
+
+def test_early_stop_para_antes_do_teto():
+    #Dados aleatórios: a validação não melhora de forma consistente, então a paciência estoura bem antes de 30 épocas
+    hp = carregar_config("mlp", epocas=30, batch_size=32, tarefa="gsc12", paciencia=2, scheduler="plateau",
+                         plateau_paciencia=1, min_delta=0.05)
+    loaders, _ = criar_dataloaders(hp, dados_falsos(hp, n=64))
+    model, hist = treinar(criar_modelo("mlp", hp), loaders, hp, seed=0, device=torch.device("cpu"), verbose=False)
+    assert hist["parou_cedo"] and hist["epocas_treinadas"] == len(hist["acc"]) < 30
+    assert hist["melhor_epoca"] <= hist["epocas_treinadas"] and len(hist["lr"]) == hist["epocas_treinadas"]
+    assert mesma_politica(hp, hp) and not mesma_politica(dict(hp, paciencia=None), hp)
 
 
 def test_latencia_separa_mfcc_e_rede():
