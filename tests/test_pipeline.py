@@ -221,6 +221,9 @@ def test_modelo_do_notebook_substitui_o_esqueleto_e_roda_a_varredura(gsc_falso, 
                              fator_x8=3.0, estavel=True, cpu="x") for n, _ in configs}
         resumo = varredura.montar_resumo(varredura.anexar_latencias(tabela, latencias), hp["fracao"], 100.0)
         assert varredura.escolher_vencedor(resumo) == "canais 2"    #com margem enorme, o menor vence
+        resumo = varredura.montar_resumo(varredura.anexar_latencias(tabela, latencias), hp["fracao"], 100.0,
+                                         acc_minima=101.0)
+        assert not resumo["acima_minimo"].any() and "Acc teste acima do mínimo" in varredura.tabela_slide(resumo)
     finally:
         MODELOS["resnet"] = original
 

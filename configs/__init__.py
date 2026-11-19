@@ -40,16 +40,16 @@ HYPERPARAMETERS = {
     'fracao': 1.0,              #fração do TREINO usada (1.0 = tudo). Validação e teste são sempre completos
 
     #Treino
-    'epocas': 20,
+    'epocas': 50,               #TETO de épocas: o early stop (paciencia) decide quando parar
     'batch_size': 128,
     'learning_rate': 0.003,
     'weight_decay': 0.01,
     'otimizador': 'adamw',
-    'scheduler': 'onecycle',    #'onecycle' | 'plateau' (ReduceLROnPlateau, para usar com o early stop)
+    'scheduler': 'plateau',     #'plateau' (ReduceLROnPlateau, combina com o early stop) | 'onecycle' (usado nos playgrounds)
     'label_smoothing': 0.1,
-    #Early stop (desligado aqui para reproduzir os resultados dos playgrounds, 20 épocas + OneCycle).
-    #O notebook principal liga: epocas=100 (teto), paciencia=10, scheduler='plateau'
-    'paciencia': None,          #para após N épocas sem melhorar a acc de validação (None = desliga)
+    #Early stop: a mesma política da §2 do relatório. Os playgrounds da CNN 1D e da ResNet usaram 20 épocas com
+    #OneCycle e sem early stop (para reproduzir: epocas=20, scheduler='onecycle', paciencia=None)
+    'paciencia': 5,             #para após N épocas sem melhorar a acc de validação (None = desliga)
     'min_delta': 0.0005,        #melhora mínima (0,05 p.p.) para zerar a contagem da paciência
     'plateau_fator': 0.5,       #ReduceLROnPlateau: lr x fator quando a validação estagna
     'plateau_paciencia': 3,     #épocas sem melhora antes de reduzir o lr
@@ -62,6 +62,7 @@ HYPERPARAMETERS = {
     'latencia_threads': 1,      #simula um dispositivo restrito (1 núcleo)
     'snrs_db': [20, 10, 5, 0, -5],
     'margem_pp': 2.0,           #critério do projeto: um modelo menor "serve" se ficar até 2 p.p. abaixo do baseline (validação)
+    'acc_minima': 90.0,         #acurácia mínima (%) no teste para um reconhecimento "funcional" (hipótese a)
 
     #Generalização (§10 do relatório)
     'n_ruido': None,                    #áudios de teste do GSC no DEMAND e no volume (None = o teste inteiro)

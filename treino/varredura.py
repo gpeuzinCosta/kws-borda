@@ -327,8 +327,12 @@ def anexar_latencias(tabela, latencias):
     return tabela
 
 
-def montar_resumo(tabela, fracao, margem_pp, referencia='baseline'):
-    """Média ± desvio entre as seeds, por experimento, e o critério dos `margem_pp` p.p. (na validação)."""
+def montar_resumo(tabela, fracao, margem_pp, referencia='baseline', acc_minima=None):
+    """Média ± desvio entre as seeds, por experimento, e o critério dos `margem_pp` p.p. (na validação).
+
+    acc_minima (%): marca as configurações cuja acurácia média no TESTE alcança o mínimo do projeto (só reporta:
+    a escolha do vencedor continua sendo pela validação).
+    """
     df = tabela
     if 'mfcc_ms' not in df.columns:
         raise RuntimeError('Rode medir_latencias_varredura + anexar_latencias antes do resumo')
@@ -350,6 +354,8 @@ def montar_resumo(tabela, fracao, margem_pp, referencia='baseline'):
     #Critério definido ANTES de ver os resultados, medido na VALIDAÇÃO
     resumo['dif_baseline'] = resumo['acc_val'] - resumo.loc[referencia, 'acc_val']
     resumo['dentro_2pp'] = resumo['dif_baseline'] >= -margem_pp
+    if acc_minima is not None:
+        resumo['acima_minimo'] = resumo['acc_teste'] >= acc_minima
     return resumo
 
 
@@ -361,7 +367,7 @@ def formatar(media, dp):
 
 def tabela_slide(resumo):
     """Resumo por experimento (média ± desvio entre as seeds): a tabela dos slides."""
-    return pd.DataFrame({
+    tabela = pd.DataFrame({
         'Entrada': resumo['entrada'],
         'Params': resumo['params'],
         'KB int8': resumo['kb_int8'],
@@ -375,6 +381,9 @@ def tabela_slide(resumo):
         'Dif. val vs baseline (p.p.)': resumo['dif_baseline'].round(2),
         'Dentro de 2 p.p.': resumo['dentro_2pp'],
     })
+    if 'acima_minimo' in resumo:
+        tabela['Acc teste acima do mínimo'] = resumo['acima_minimo']
+    return tabela
 
 
 def escolher_vencedor(resumo):
