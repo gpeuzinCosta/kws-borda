@@ -14,6 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import argparse
+import shutil
 import subprocess
 import tarfile
 import urllib.request
@@ -34,7 +35,10 @@ def baixar(url, arquivo):
     arquivo.parent.mkdir(parents=True, exist_ok=True)
     print(f"baixando {url} -> {arquivo}")
     tmp = arquivo.with_suffix(arquivo.suffix + ".parcial")
-    urllib.request.urlretrieve(url, tmp)
+    #O servidor do MSWC recusa (HTTP 403) o User-Agent padrão do Python ("Python-urllib/3.x"): manda um nome genérico
+    pedido = urllib.request.Request(url, headers={"User-Agent": "kws-borda/1.0"})
+    with urllib.request.urlopen(pedido) as resposta, open(tmp, "wb") as saida:
+        shutil.copyfileobj(resposta, saida, length=1024 * 1024)
     tmp.rename(arquivo)     #só vira o nome final quando o download terminou
     return arquivo
 
