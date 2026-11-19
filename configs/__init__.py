@@ -33,7 +33,9 @@ HYPERPARAMETERS = {
     'n_mels': 40,
     'f_min': 20,
     'f_max': 7600,
-    'normalizacao': 'global',   #'global': média/desvio por coeficiente medidos no TREINO | 'por_amostra': cada áudio pela sua própria média/desvio
+    #'por_amostra': cada áudio pela sua própria média/desvio (remove o volume do microfone; ver §10.2 do relatório e
+    #§4.2-4.5 do playground de generalização) | 'global': média/desvio por coeficiente medidos no TREINO
+    'normalizacao': 'por_amostra',
     'spec_augment': True,       #máscara de tempo e de coeficientes, igual para todos
     'fracao': 1.0,              #fração do TREINO usada (1.0 = tudo). Validação e teste são sempre completos
 
@@ -60,6 +62,16 @@ HYPERPARAMETERS = {
     'latencia_threads': 1,      #simula um dispositivo restrito (1 núcleo)
     'snrs_db': [20, 10, 5, 0, -5],
     'margem_pp': 2.0,           #critério do projeto: um modelo menor "serve" se ficar até 2 p.p. abaixo do baseline (validação)
+
+    #Generalização (§10 do relatório)
+    'n_ruido': None,                    #áudios de teste do GSC no DEMAND e no volume (None = o teste inteiro)
+    'snrs_ambiente': [5, 0, -5],        #níveis de ruído da análise por ambiente
+    'snr_matriz': -5,                   #nível das matrizes de confusão com ruído
+    'ganhos_db': [-40, -30, -20, -10, 0, 10],   #ganhos aplicados ao áudio no teste de volume
+    'por_falante_audiomnist': 100,      #gravações por falante do AudioMNIST (60 falantes; None = todas)
+    'k_shots': [1, 3, 5, 10, 20],       #MSWC-pt: exemplos de treino por palavra no few-shot
+    'repeticoes_few': 5,                #sorteios dos K exemplos (média ± desvio)
+    'hp_few': {'epocas': 50, 'batch_size': 16, 'learning_rate': 1e-2, 'weight_decay': 1e-2},   #treino da head nova
 }
 
 
@@ -105,6 +117,27 @@ PRESETS_MFCC = {
     #Igual ao artigo Hello Edge (e ao notebook do Luciano): 10 coeficientes x 49 janelas, entrada 8x menor
     "hello_edge": dict(n_mfcc=10, janela_ms=40, passo_ms=20, n_mels=40, center=False),
 }
+
+#Entrada SEM MFCC (§12 do relatório): o áudio cru entra como uma "matriz" 1 x 16000, no mesmo formato
+#(B, n_mfcc, n_frames) do resto do pipeline. A normalização por amostra e um "MFCC aprendido" (FrenteOnda,
+#modelos/onda.py) ficam DENTRO da rede. Uso: carregar_config("cnn1d", **PRESET_ONDA)
+PRESET_ONDA = dict(entrada='onda', n_mfcc=1, normalizacao='nenhuma', spec_augment=False,
+                   onda_frente='conv',      #'conv': "MFCC aprendido" | 'patches': pedaços de 10 ms crus (ver modelos/onda.py)
+                   onda_filtros=40,         #canais do "MFCC aprendido" (o MFCC padrão tem 40 coeficientes)
+                   onda_janela_ms=25,       #tamanho de cada filtro (400 amostras)
+                   onda_passo_ms=10,        #passo entre janelas (160 amostras): cerca de 100 janelas por segundo
+                   onda_center=False)       #True: preenche as bordas, como o MFCC com center=True
+
+
+def sem_mfcc(hp):
+    """Sobrescritas para treinar o modelo de `hp` SEM MFCC, com uma frente aprendida do MESMO formato do MFCC dele.
+
+    Ex.: hello_edge (10 coef, janela 40 ms, passo 20 ms) -> 10 filtros de 40 ms com passo de 20 ms -> 10 x 49, a mesma
+    entrada da rede. Assim a rede é idêntica e só o MFCC fixo é trocado por uma convolução treinada.
+    Uso: config(nome, **sem_mfcc(config(nome)))
+    """
+    return dict(PRESET_ONDA, onda_frente='conv', onda_filtros=hp['n_mfcc'], onda_janela_ms=hp['janela_ms'],
+                onda_passo_ms=hp['passo_ms'], onda_center=hp.get('center', True))
 
 
 def carregar_config(modelo, mfcc=None, **sobrescritas):

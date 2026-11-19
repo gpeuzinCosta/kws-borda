@@ -117,8 +117,13 @@ def _criar_otimizacao(model, hp, passos_totais):
 
 
 def mesma_politica(hp_run, hp):
-    """Um run salvo só serve se foi treinado com a mesma fração, teto de épocas, scheduler e early stop."""
-    chaves = [("fracao", 1.0), ("epocas", None), ("scheduler", "onecycle"), ("paciencia", None)]
+    """Um run salvo só serve se foi treinado com a mesma fração, teto de épocas, scheduler, early stop e normalização.
+
+    A normalização entra porque a varredura acha o run pelo NOME da configuração (ex.: 'baseline'): sem conferir,
+    pesos treinados com a normalização global seriam carregados e avaliados com a por amostra, sem nenhum aviso.
+    """
+    chaves = [("fracao", 1.0), ("epocas", None), ("scheduler", "onecycle"), ("paciencia", None),
+              ("normalizacao", "global")]
     return all(hp_run.get(k, padrao) == hp.get(k, padrao) for k, padrao in chaves)
 
 

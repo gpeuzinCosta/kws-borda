@@ -5,6 +5,7 @@
 Ao implementar um modelo, mude IMPLEMENTADO=True: o teste de contrato passa a rodar para ele.
 """
 import numpy as np
+import pandas as pd
 import pytest
 import soundfile as sf
 import torch
@@ -121,6 +122,8 @@ def test_early_stop_para_antes_do_teto():
     assert hist["parou_cedo"] and hist["epocas_treinadas"] == len(hist["acc"]) < 30
     assert hist["melhor_epoca"] <= hist["epocas_treinadas"] and len(hist["lr"]) == hist["epocas_treinadas"]
     assert mesma_politica(hp, hp) and not mesma_politica(dict(hp, paciencia=None), hp)
+    #Um treino com a normalização global não serve para a por amostra (a varredura acha o run só pelo nome)
+    assert not mesma_politica(dict(hp, normalizacao="global"), dict(hp, normalizacao="por_amostra"))
 
 
 def test_latencia_separa_mfcc_e_rede():
@@ -143,7 +146,7 @@ def test_spec_augment_batch():
 
 
 def test_dataloader_entrega_batch_pronto():
-    hp = carregar_config("cnn1d", batch_size=32, fracao=0.5)
+    hp = carregar_config("cnn1d", batch_size=32, fracao=0.5, normalizacao="global")
     loaders, (media, desvio) = criar_dataloaders(hp, dados_falsos(hp, n=128))
     xb, yb = next(iter(loaders["treino"]))
     assert xb.shape == (32, hp["n_mfcc"], hp["n_frames"]) and yb.shape == (32,)
@@ -238,3 +241,143 @@ def test_graficos_do_relatorio_rodam():
     cabe = cabe_em_microcontroladores(df).set_index(["modelo", "mcu"])["cabe"]
     assert cabe["a", "Arduino Uno (ATmega328P)"] == "sim" and cabe["b", "Arduino Uno (ATmega328P)"] == "não"
 
+
+
+#--------------------------------------------------------------------------------------------------------------
+#Sem MFCC (§11) e generalização (§10)
+#--------------------------------------------------------------------------------------------------------------
+
+def test_normalizacao_por_amostra_e_o_padrao():
+    from configs import HYPERPARAMETERS
+    assert HYPERPARAMETERS["normalizacao"] == "por_amostra"
+    loaders, (media, desvio) = criar_dataloaders(carregar_config("cnn1d"), dados_falsos(carregar_config("cnn1d"), n=32))
+    assert media is None and desvio is None
+
+
+@pytest.mark.parametrize("nome", NOMES)
+def test_modelo_sem_mfcc_tem_a_mesma_rede(nome):
+    """A frente aprendida entrega o MESMO formato do MFCC do modelo: a rede (e o custo dela) não muda."""
+    from configs import sem_mfcc
+    hp = carregar_config(nome)
+    hp_onda = carregar_config(nome, **sem_mfcc(hp))
+    assert (hp_onda["n_mfcc"], hp_onda["n_frames"]) == (1, 16000)
+    model = criar_modelo(nome, hp_onda).eval()
+    assert model(torch.randn(2, 1, 16000)).shape == (2, hp["n_classes"])
+    assert model.formato_entrada == (1, 16000) and hasattr(model, "head")
+    rede_mfcc = criar_modelo(nome, hp)
+    #mesma rede: só os parâmetros da frente (conv sem bias + BatchNorm) a mais
+    frente = sum(p.numel() for p in model.frente.parameters())
+    assert custo(model)["params"] == custo(rede_mfcc)["params"] + frente
+    assert frente == hp["n_mfcc"] * int(16 * hp["janela_ms"]) + 2 * hp["n_mfcc"]
+
+
+def test_atencao_com_tokens_de_audio_cru():
+    """A configuração 'áudio cru' da §8.5: 100 tokens de 10 ms (160 amostras), sem MFCC."""
+    cfg = dict(varredura.CONFIGS_ATENCAO)["áudio cru (tokens de 10 ms)"]
+    hp = varredura.aplicar(carregar_config("atencao"), cfg)
+    model = criar_modelo("atencao", hp).eval()
+    assert model.rede.projecao.in_features == 160 and model.rede.pos_embedding.shape[1] == 101
+    x = torch.randn(3, 1, 16000) * 0.1
+    assert model(x).shape == (3, 35)
+    #A normalização do sinal fica dentro da rede: o volume não muda a saída
+    assert torch.allclose(model(x), model(x * 3), atol=1e-3)
+
+
+def test_treino_sem_mfcc_de_ponta_a_ponta(tmp_path):
+    from configs import sem_mfcc
+    hp = carregar_config("cnn1d", epocas=1, batch_size=16, tarefa="gsc12")
+    hp = carregar_config("cnn1d", epocas=1, batch_size=16, tarefa="gsc12", **sem_mfcc(hp))
+    dados = dados_falsos(hp, n=48)
+    dados = {k: (X.half(), y) for k, (X, y) in dados.items()}      #o cache do áudio cru é float16
+    loaders, (media, desvio) = criar_dataloaders(hp, dados)
+    assert media is None and loaders["treino"].dataset.X.dtype == torch.float16
+    model, hist = treinar(criar_modelo("cnn1d", hp), loaders, hp, seed=0, pasta_runs=tmp_path,
+                          device=torch.device("cpu"), verbose=False)
+    assert len(hist["acc"]) == 1 and carregar_run(tmp_path, hp, 0) is not None
+    r = medir_latencia(model, hp, None, None, rodadas=1, repeticoes=3, aquecimento=1)
+    assert r["rede_ms"] > 0
+
+
+def test_few_shot_so_treina_a_head():
+    from treino.few_shot import RedeCongelada, few_shot_congelado
+    from configs import sem_mfcc
+    for hp in [carregar_config("dscnn"), carregar_config("cnn1d", **sem_mfcc(carregar_config("cnn1d")))]:
+        model = criar_modelo(hp["modelo"], hp)
+        rede = RedeCongelada(model, 4)
+        treinaveis = [n for n, p in rede.named_parameters() if p.requires_grad]
+        assert treinaveis and all("head." in n for n in treinaveis)
+        X = torch.randn(40, hp["n_mfcc"], hp["n_frames"])
+        y = torch.arange(4).repeat(10)
+        eh_treino = torch.arange(40) < 24
+        media, desvio = few_shot_congelado(dict(model=model), X, y, eh_treino, K=3,
+                                           hp_few=dict(epocas=2, batch_size=4, learning_rate=1e-2, weight_decay=0),
+                                           repeticoes=2, device=torch.device("cpu"))
+        assert 0 <= media <= 100
+        assert model.head.out_features == 35       #o modelo original não muda
+        #uma head só (peso e viés), e é a que o forward usa (sem uma cópia órfã no ModeloOnda)
+        assert rede.rede.head.out_features == 4 and sum("head." in n for n, _ in rede.named_parameters()) == 2
+
+
+def test_divisao_mswc_por_falante(tmp_path):
+    import pandas as pd
+    from dados.mswc_pt import dividir_por_falante
+    linhas = []
+    for w in ["sim", "não", "zero"]:
+        for s in range(20):
+            for k in range(4):
+                rel = f"{w}/s{s}_{k}.opus"
+                (tmp_path / w).mkdir(exist_ok=True)
+                (tmp_path / rel).touch()
+                linhas.append(dict(WORD=w, LINK=rel, SPEAKER=f"s{s}"))
+    palavras, amostras = dividir_por_falante(pd.DataFrame(linhas), tmp_path, k_max=5, min_avaliacao=5)
+    assert palavras == ["não", "sim", "zero"]
+    treino = set(amostras.query("conjunto == 'treino'")["SPEAKER"])
+    avaliacao = set(amostras.query("conjunto == 'avaliacao'")["SPEAKER"])
+    assert treino and avaliacao and not (treino & avaliacao)
+    assert amostras.groupby(["WORD", "SPEAKER"]).size().max() <= 3
+
+
+def test_funcoes_da_generalizacao():
+    import matplotlib
+    matplotlib.use("Agg")
+    from avaliacao import (com_ganho, avaliar_volume, previsoes_com_ruido, acuracia_por_ambiente,
+                           erros_por_ambiente, avaliar_ruido_por_ambiente, zero_shot_mapeado)
+    from avaliacao.graficos import curvas_volume, mapa_ambientes, comparar_treinos
+    w = torch.rand(16000) * 2 - 1
+    assert com_ganho(w, 20).abs().max() <= 1 and torch.allclose(com_ganho(w, 0), w)
+
+    hp = carregar_config("cnn1d")
+    modelos = {"cnn1d": dict(model=criar_modelo("cnn1d", hp).eval(), extrator=ExtratorMFCC.de_hparams(hp),
+                             media=None, desvio=None)}
+    wavs = [torch.randn(16000) * 0.1 for _ in range(6)]
+    y = torch.zeros(6, dtype=torch.long)
+    vol = avaliar_volume(modelos, wavs, y, [-10, 0])
+    curvas_volume(vol)
+    ruidos = {"A": torch.randn(32000), "B": torch.randn(32000)}
+    por_amb = avaliar_ruido_por_ambiente(modelos, wavs, y, ruidos, [0])
+    assert list(por_amb[0].columns) == ["A", "B"]
+    preds, amb = previsoes_com_ruido(modelos, wavs, ruidos, -5)
+    acc = acuracia_por_ambiente(preds, y, amb)
+    mapa_ambientes(acc, -5)
+    erros_por_ambiente(preds, y, amb, CLASSES_GSC)
+    assert zero_shot_mapeado(modelos, wavs, y, torch.tensor([0, 1, 2])).shape == (1, 1)
+    h = dict(acc=[0.1, 0.2], val=[2.0, 1.5], treino=[2.5, 1.8])
+    comparar_treinos({"MFCC": h, "sem MFCC": h})
+
+
+def test_varredura_nao_mistura_normalizacoes(gsc_falso, tmp_path):
+    """O CSV no Drive tem a varredura global; refazer com a por amostra treina de novo e devolve só as linhas novas."""
+    varredura.mfcc_em_memoria.update(nome=None, dados=None)
+    pastas = {"cache": tmp_path, "runs": tmp_path, "resultados": tmp_path}
+    configs = [("baseline", {}), ("norm global", {"normalizacao": "global"})]
+    hp_global = carregar_config("mlp", epocas=1, batch_size=16, normalizacao="global")
+    varredura.rodar_varredura("mlp", configs[:1], hp_global, [0], gsc_falso, pastas, device=torch.device("cpu"))
+
+    hp = carregar_config("mlp", epocas=1, batch_size=16)
+    tabela, modelos = varredura.rodar_varredura("mlp", configs, hp, [0], gsc_falso, pastas, device=torch.device("cpu"))
+    assert list(zip(tabela["experimento"], tabela["normalizacao"])) == [("baseline", "por_amostra"), ("norm global", "global")]
+    assert len(pd.read_csv(tmp_path / "varredura_mlp.csv")) == 3      #a linha global antiga continua no CSV
+    #o baseline foi treinado de novo: o run mais recente é o da por amostra (o global não foi reaproveitado)
+    import yaml
+    run = sorted(tmp_path.glob("mlp_baseline_s0_*"))[-1]
+    assert yaml.safe_load(open(run / "config.yaml"))["normalizacao"] == "por_amostra"

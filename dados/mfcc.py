@@ -40,7 +40,9 @@ class ExtratorMFCC(torch.nn.Module):
 
     @classmethod
     def de_hparams(cls, hp):
-        """Cria o extrator a partir do dicionário de hiperparâmetros."""
+        """Cria o extrator a partir do dicionário de hiperparâmetros (ExtratorOnda quando hp['entrada'] == 'onda')."""
+        if hp.get("entrada") == "onda":
+            return ExtratorOnda()
         return cls(n_mfcc=hp["n_mfcc"], janela_ms=hp["janela_ms"], passo_ms=hp["passo_ms"],
                    n_mels=hp["n_mels"], f_min=hp["f_min"], f_max=hp["f_max"], sample_rate=hp["sample_rate"],
                    center=hp.get("center", True))
@@ -51,13 +53,31 @@ class ExtratorMFCC(torch.nn.Module):
         return self.mfcc(wav)
 
 
+class ExtratorOnda(torch.nn.Module):
+    """Entrada SEM MFCC (§12 do relatório): só acrescenta o eixo de "coeficiente". Waveform (B, N) -> (B, 1, N).
+
+    Assim o áudio cru tem o mesmo formato (B, n_mfcc, n_frames) do MFCC, e o cache, os DataLoaders, o treino e a
+    latência do projeto funcionam sem mudança. O pré-processamento de verdade fica dentro da rede (modelos/onda.py).
+    """
+
+    config = dict(entrada="onda")
+
+    def forward(self, wav):
+        if wav.dim() == 1:
+            wav = wav.unsqueeze(0)
+        return wav.unsqueeze(1)
+
+
 def calcular_n_frames(hp):
     """Nº de janelas do MFCC para 1 s de áudio.
 
     center=True (padrão do torchaudio): completa as bordas -> 1 + N // passo         (16000/160 -> 101)
     center=False (Hello Edge):          só janelas inteiras -> 1 + (N - janela) // passo  (640/320 -> 49)
+    entrada='onda' (sem MFCC):          cada amostra é uma "janela" -> N                  (16000)
     """
     n = int(hp["sample_rate"] * hp["duracao_s"])
+    if hp.get("entrada") == "onda":
+        return n
     n_fft = int(hp["sample_rate"] * hp["janela_ms"] / 1000)
     hop = int(hp["sample_rate"] * hp["passo_ms"] / 1000)
     return 1 + n // hop if hp.get("center", True) else 1 + (n - n_fft) // hop

@@ -27,7 +27,7 @@ from avaliacao.custo import custo
 from avaliacao.graficos import plot_matriz_confusao
 from avaliacao.latencia import medir_latencia
 from avaliacao.metricas import acuracia, f1_macro, matriz_confusao
-from configs import escolher_device
+from configs import PRESET_ONDA, escolher_device
 from dados.mfcc import calcular_n_frames
 from dados.speech_commands import carregar_gsc, classes_da_tarefa, criar_dataloaders, nome_cache
 from modelos import criar_modelo
@@ -37,7 +37,7 @@ from treino.loop import carregar_run, mesma_politica, prever, treinar
 CONFIGS_CNN1D = [
     ('baseline',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64}),
     ('sem spec_augment',         {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'spec_augment': False}),
-    ('norm por_amostra',         {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'normalizacao': 'por_amostra'}),
+    ('norm global',              {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'normalizacao': 'global'}),
     ('sem weight_decay',         {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'weight_decay': 0.0}),
     ('canais 32',                {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 32}),
     ('canais 16',                {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 16}),
@@ -59,7 +59,7 @@ CONFIGS_CNN1D = [
 CONFIGS_RESNET = [
     ('baseline',                    {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 45, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False}),
     ('sem spec_augment',            {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 45, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False, 'spec_augment': False}),
-    ('norm por_amostra',            {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 45, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False, 'normalizacao': 'por_amostra'}),
+    ('norm global',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 45, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False, 'normalizacao': 'global'}),
     ('sem weight_decay',            {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 45, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False, 'weight_decay': 0.0}),
     ('res8-narrow',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 19, 'n_blocos': 3, 'pool': [3, 4], 'dilatacao': False, 'conv_extra': False}),
     ('res15-narrow',                {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 19, 'n_blocos': 6, 'pool': None, 'dilatacao': True, 'conv_extra': True}),
@@ -82,7 +82,7 @@ CONFIGS_RESNET = [
 CONFIGS_MLP = [
     ('baseline',                  {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 128, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False}),
     ('sem spec_augment',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 128, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False, 'spec_augment': False}),
-    ('norm por_amostra',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 128, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False, 'normalizacao': 'por_amostra'}),
+    ('norm global',               {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 128, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False, 'normalizacao': 'global'}),
     ('sem weight_decay',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 128, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False, 'weight_decay': 0.0}),
     ('hidden 64',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 64, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False}),
     ('hidden 32',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'hidden': 32, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False}),
@@ -98,7 +98,7 @@ CONFIGS_MLP = [
 CONFIGS_DSCNN = [
     ('baseline',                  {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'n_blocos': 4}),
     ('sem spec_augment',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'n_blocos': 4, 'spec_augment': False}),
-    ('norm por_amostra',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'n_blocos': 4, 'normalizacao': 'por_amostra'}),
+    ('norm global',               {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'n_blocos': 4, 'normalizacao': 'global'}),
     ('sem weight_decay',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 64, 'n_blocos': 4, 'weight_decay': 0.0}),
     ('canais 32',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 32, 'n_blocos': 4}),
     ('canais 16',                 {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'canais': 16, 'n_blocos': 4}),
@@ -114,7 +114,7 @@ CONFIGS_DSCNN = [
 CONFIGS_ATENCAO = [
     ('baseline',                  {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0}),
     ('sem spec_augment',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0, 'spec_augment': False}),
-    ('norm por_amostra',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0, 'normalizacao': 'por_amostra'}),
+    ('norm global',               {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0, 'normalizacao': 'global'}),
     ('sem weight_decay',          {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0, 'weight_decay': 0.0}),
     ('d_model 32',                {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 32, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0}),
     ('d_model 16',                {'n_mfcc': 40, 'janela_ms': 30, 'passo_ms': 10, 'center': True, 'd_model': 16, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0}),
@@ -124,6 +124,9 @@ CONFIGS_ATENCAO = [
     ('hello_edge + d_model 32',   {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'd_model': 32, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0}),
     ('hello_edge + d_model 16',   {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'd_model': 16, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0}),
     ('hello_edge + 1 camada',     {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, 'd_model': 64, 'n_camadas': 1, 'n_heads': 1, 'dropout': 0}),
+    #SEM MFCC: o áudio cru inteiro, cortado em 100 pedaços de 10 ms (160 amostras). Cada pedaço é um token
+    #(Linear(160 -> 64)). Normalização por amostra do sinal dentro da rede e sem SpecAugment (é feito para o MFCC)
+    ('áudio cru (tokens de 10 ms)', {**PRESET_ONDA, 'onda_frente': 'patches', 'd_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0}),
 ]
 
 
@@ -200,7 +203,9 @@ def rodar_varredura(nome_modelo, configs, hp, seeds, raiz, pastas, retreinar=Fal
     tabela = []
     if caminho_csv.exists() and not retreinar:
         tabela = pd.read_csv(caminho_csv).to_dict('records')
-    ja_feitos = {(r['experimento'], r['seed'], r['fracao'], r['epocas']) for r in tabela}
+    #A normalização entra na chave: o CSV no Drive pode ter a mesma configuração treinada com a outra normalização
+    #(as varreduras foram feitas primeiro com a global)
+    ja_feitos = {(r['experimento'], r['seed'], r['fracao'], r['epocas'], r.get('normalizacao', 'global')) for r in tabela}
     modelos = {}
 
     #Seed por fora: se algo falhar no meio, o que já terminou é uma comparação COMPLETA com a seed 0
@@ -233,10 +238,11 @@ def rodar_varredura(nome_modelo, configs, hp, seeds, raiz, pastas, retreinar=Fal
                             f'{hist["tempo_min"]:.1f} min')
 
             #Teste medido logo depois do treino. Registra só o que ainda não está na tabela
-            if (nome, seed, fracao, hp_exp['epocas']) not in ja_feitos:
+            chave = (nome, seed, fracao, hp_exp['epocas'], hp_exp['normalizacao'])
+            if chave not in ja_feitos:
                 registrar_linha(tabela, nome, seed, hp_exp, hist, _avaliar(model, loaders['val']),
                                 _avaliar(model, loaders['teste']))
-                ja_feitos.add((nome, seed, fracao, hp_exp['epocas']))
+                ja_feitos.add(chave)
                 pd.DataFrame(tabela).to_csv(caminho_csv, index=False)    #salva a cada treino: sobrevive a uma queda
 
             modelos[(nome, seed)] = model
@@ -245,8 +251,11 @@ def rodar_varredura(nome_modelo, configs, hp, seeds, raiz, pastas, retreinar=Fal
     #Devolve só as configurações PEDIDAS: o CSV no Drive pode ter outras (ex.: o relatório roda só o baseline e o
     #vencedor, e o playground deixou as 15 configurações salvas)
     tabela = pd.DataFrame(tabela)
-    nomes = [nome for nome, _ in configs]
-    pedidas = (tabela['fracao'] == fracao) & (tabela['epocas'] == hp['epocas']) & tabela['experimento'].isin(nomes)
+    #Cada configuração com a SUA normalização (a do hp base ou a que ela mesma muda, ex.: 'norm global')
+    pedidas_norm = {(nome, aplicar(hp, mudancas)['normalizacao']) for nome, mudancas in configs}
+    pedidas = ((tabela['fracao'] == fracao) & (tabela['epocas'] == hp['epocas'])
+               & pd.Series([(e, n) in pedidas_norm for e, n in zip(tabela['experimento'], tabela['normalizacao'])],
+                           index=tabela.index))
     return tabela[pedidas].reset_index(drop=True), modelos
 
 

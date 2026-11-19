@@ -22,7 +22,7 @@ import zipfile
 from pathlib import Path
 
 from dados.audiomnist import URL_AUDIOMNIST
-from dados.mswc_pt import PT2EN, URL_MSWC_PT
+from dados.mswc_pt import PT2EN, URL_MSWC_PT, URL_SPLITS_MSWC_PT
 from dados.ruido import AMBIENTES_DEMAND, URL_DEMAND
 from dados.speech_commands import URL_GSC
 
@@ -79,6 +79,12 @@ def mswc(destino, arquivos):
         membros = [m for m in t.getmembers()
                    if any(m.name.startswith(f"pt/clips/{w}/") for w in PT2EN)]
         t.extractall(pasta, members=membros)
+
+    #Metadados (falante de cada clipe), para a divisão por falante do few-shot
+    if not list((pasta / "splits").glob("**/*splits*.csv")):
+        tar = baixar(URL_SPLITS_MSWC_PT, arquivos / "mswc_pt_splits.tar.gz")
+        with tarfile.open(tar) as t:
+            t.extractall(pasta / "splits")
 
 
 DATASETS = {"gsc": gsc, "demand": demand, "audiomnist": audiomnist, "mswc": mswc}

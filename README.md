@@ -21,10 +21,10 @@ bancada de testes voltada para dispositivos restritos, no Google Speech Commands
 ```
 kws-borda/
 ├── notebooks/       notebook principal (projeto + resultados) e experimentos/ (rascunhos)
-├── modelos/         uma arquitetura por arquivo: mlp, cnn1d, resnet, dscnn, atencao
+├── modelos/         uma arquitetura por arquivo: mlp, cnn1d, resnet, dscnn, atencao (+ onda.py: entrada sem MFCC)
 ├── dados/           funções para gerir os datasets: download, MFCC, GSC v2, DEMAND, AudioMNIST, MSWC-pt
-├── treino/          loop de treino único (loop.py) + script de treino (treinar.py)
-├── avaliacao/       métricas, custo (params/MACs), latência, ruído, gráficos + script (avaliar.py)
+├── treino/          loop de treino único (loop.py), varreduras, few-shot do MSWC, treino sem MFCC + treinar.py
+├── avaliacao/       métricas, custo (params/MACs), latência, generalização (ruído, volume, AudioMNIST, MSWC), gráficos
 ├── configs/         hiperparâmetros: HYPERPARAMETERS (comum a todos) + HP_MODELOS (só o que muda)
 ├── tests/           testes rápidos com dados falsos
 └── docs/            referências

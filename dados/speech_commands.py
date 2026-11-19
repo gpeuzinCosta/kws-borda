@@ -127,15 +127,19 @@ def ler_trecho(raiz, rel):
     return ler_audio(Path(raiz) / rel)
 
 
-def extrair_mfcc(raiz, arquivos, extrator, tarefa, caminho_cache=None, batch=256):
-    """Lê os áudios e calcula o MFCC de todos. Se houver cache, só carrega. Devolve (X, y)."""
+def extrair_mfcc(raiz, arquivos, extrator, tarefa, caminho_cache=None, batch=256, dtype=None):
+    """Lê os áudios e calcula o MFCC de todos. Se houver cache, só carrega. Devolve (X, y).
+
+    dtype: tipo em que X é guardado (ex.: torch.float16 para o áudio cru, que ocupa 4x mais que o MFCC padrão).
+    """
     if caminho_cache is not None and Path(caminho_cache).exists():
         return torch.load(caminho_cache)
     X, y = [], []
     with torch.no_grad():
         for i in tqdm(range(0, len(arquivos), batch), desc="MFCC"):
             lote = arquivos[i:i + batch]
-            X.append(extrator(torch.stack([ler_trecho(raiz, rel) for rel in lote])))
+            x = extrator(torch.stack([ler_trecho(raiz, rel) for rel in lote]))
+            X.append(x if dtype is None else x.to(dtype))     #converte lote a lote: o pico de memória fica menor
             y += [rotulo(rel, tarefa) for rel in lote]
     X, y = torch.cat(X), torch.tensor(y)
     if caminho_cache is not None:
@@ -163,11 +167,13 @@ def normalizar(x, media=None, desvio=None):
 
 class DatasetMFCC(Dataset):
 
-    def __init__(self, X, y, media, desvio, aumentar=False):
+    def __init__(self, X, y, media, desvio, aumentar=False, normalizar_entrada=True):
         super().__init__()
 
-        #Normaliza tudo de uma vez aqui, e não um áudio por __getitem__
-        self.X = normalizar(X, media, desvio)
+        #Normaliza tudo de uma vez aqui, e não um áudio por __getitem__.
+        #normalizar_entrada=False (normalizacao='nenhuma', áudio cru): usa X como está, sem cópia; a normalização
+        #fica dentro da rede (modelos/onda.py)
+        self.X = normalizar(X, media, desvio) if normalizar_entrada else X
         self.y = y
         self.aumentar = aumentar    #SpecAugment ligado ou desligado
 
@@ -252,6 +258,8 @@ def dados_falsos(hp, n=256):
 
 def nome_cache(hp):
     """Identifica a combinação tarefa + MFCC (caches diferentes não se misturam)."""
+    if hp.get("entrada") == "onda":
+        return f"{hp['tarefa']}_onda{calcular_n_frames(hp)}"
     centro = "c" if hp.get("center", True) else "nc"
     return f"{hp['tarefa']}_{hp['n_mfcc']}x{calcular_n_frames(hp)}_{hp['janela_ms']}-{hp['passo_ms']}ms{centro}"
 
@@ -261,7 +269,10 @@ def carregar_gsc(hp, raiz, pasta_cache):
     extrator = ExtratorMFCC.de_hparams(hp)
     split = listar_split(raiz, hp["tarefa"])
     print(hp["tarefa"], {k: len(v) for k, v in split.items()})
-    return {k: extrair_mfcc(raiz, v, extrator, hp["tarefa"], Path(pasta_cache) / f"gsc_{k}_{nome_cache(hp)}.pt")
+    #Áudio cru em float16: 105 mil x 16000 amostras = 3,4 GB (em float32 seriam 6,8 GB). A rede converte para float32
+    dtype = torch.float16 if hp.get("entrada") == "onda" else None
+    return {k: extrair_mfcc(raiz, v, extrator, hp["tarefa"], Path(pasta_cache) / f"gsc_{k}_{nome_cache(hp)}.pt",
+                            dtype=dtype)
             for k, v in split.items()}
 
 
@@ -272,6 +283,7 @@ def criar_dataloaders(hp, dados):
     - hp['fracao'] < 1 usa só uma fração do TREINO (validação e teste são sempre completos);
     - com normalizacao='global', media/desvio vêm SÓ do treino (medir na validação seria vazamento);
       com normalizacao='por_amostra', devolve (None, None);
+      com normalizacao='nenhuma' (áudio cru, §12), não normaliza nada aqui: a rede normaliza (modelos/onda.py);
     - o SpecAugment NÃO entra aqui: é aplicado no batch, na GPU, dentro do treinar_uma_epoca (spec_augment_batch).
     """
     X_treino, y_treino = dados["treino"]
@@ -293,10 +305,11 @@ def criar_dataloaders(hp, dados):
         media = None
         desvio = None
 
-    conjuntos = {"treino": DatasetMFCC(X_treino, y_treino, media, desvio)}
+    normalizar_entrada = hp.get("normalizacao", "global") != "nenhuma"
+    conjuntos = {"treino": DatasetMFCC(X_treino, y_treino, media, desvio, normalizar_entrada=normalizar_entrada)}
     for nome in dados:
         if nome != "treino":
-            conjuntos[nome] = DatasetMFCC(*dados[nome], media, desvio)
+            conjuntos[nome] = DatasetMFCC(*dados[nome], media, desvio, normalizar_entrada=normalizar_entrada)
 
     #O sampler entrega a LISTA de índices do batch, e o DatasetMFCC devolve o batch inteiro com um fatiamento
     #(self.X[lista]) em vez de 128 chamadas do __getitem__ + empilhamento. batch_size=None desliga o

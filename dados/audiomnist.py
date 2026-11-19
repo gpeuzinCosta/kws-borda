@@ -5,6 +5,7 @@ e o SOTAQUE (57 de 60 não nativos de inglês). Então o teste é "generaliza pa
 não "microfones diferentes". Os 10 dígitos existem no GSC (zero..nine), então o modelo treinado no GSC
 pode ser avaliado direto, sem re-treino.
 """
+import json
 from pathlib import Path
 import random
 
@@ -26,3 +27,13 @@ def listar_audiomnist(raiz, por_falante=None, seed=0):
         arquivos += fs if por_falante is None else rng.sample(fs, min(por_falante, len(fs)))
     rotulos = [int(f.name[0]) for f in arquivos]
     return arquivos, rotulos
+
+
+def carregar_meta(raiz):
+    """Metadados dos 60 falantes: {falante: {'accent', 'native speaker', 'recordingroom', ...}}."""
+    return json.load(open(Path(raiz, "data", "audioMNIST_meta.txt")))
+
+
+def grupo_do_falante(meta, falante):
+    """'nativo' (inglês nativo) ou 'com sotaque'."""
+    return "nativo" if meta.get(falante, {}).get("native speaker") == "yes" else "com sotaque"

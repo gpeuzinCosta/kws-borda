@@ -57,6 +57,8 @@ def medir_latencia(model, hp, media, desvio, rodadas=5, repeticoes=300, aquecime
     """Mede MFCC, normalização e rede, separadamente, na CPU. Devolve um dicionário em ms.
 
     media/desvio: as estatísticas da normalização global ((n_mfcc, 1)) ou None (por_amostra).
+    Com normalizacao='nenhuma' (áudio cru), não há normalização fora da rede: norm_ms mede só a chamada vazia,
+    e a normalização do sinal entra no tempo da rede (modelos/onda.py).
     """
 
     #CPU com 1 thread (simula um núcleo de dispositivo de borda) e batch 1 (um comando por vez)
@@ -72,7 +74,11 @@ def medir_latencia(model, hp, media, desvio, rodadas=5, repeticoes=300, aquecime
 
         wav = torch.randn(1, N_AMOSTRAS) * 0.1                 # (1, 16000): um áudio de 1 s
         feat = ext_cpu(wav)                                    # (1, n_mfcc, n_frames)
-        feat_norm = normalizar(feat, media, desvio)            #a entrada que a rede realmente recebe
+        if hp.get('normalizacao') == 'nenhuma':
+            norm = lambda f, m, d: f                           #áudio cru: a rede normaliza
+        else:
+            norm = normalizar
+        feat_norm = norm(feat, media, desvio)                  #a entrada que a rede realmente recebe
         feat_x8 = feat_norm.repeat(8, 1, 1)                    #8 áudios iguais, para o teste de overhead
 
         melhor = None
@@ -86,7 +92,7 @@ def medir_latencia(model, hp, media, desvio, rodadas=5, repeticoes=300, aquecime
                 m, p = cronometrar(lambda: ext_cpu(wav), repeticoes, aquecimento)
                 med['mfcc'].append(m); p95['mfcc'].append(p)
 
-                m, p = cronometrar(lambda: normalizar(feat, media, desvio), repeticoes, aquecimento)
+                m, p = cronometrar(lambda: norm(feat, media, desvio), repeticoes, aquecimento)
                 med['norm'].append(m); p95['norm'].append(p)
 
                 m, p = cronometrar(lambda: modelo_cpu(feat_norm), repeticoes, aquecimento)

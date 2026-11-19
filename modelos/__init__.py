@@ -51,7 +51,12 @@ def criar_modelo(nome, hp):
     cls = MODELOS[nome]
     aceitos = inspect.signature(cls.__init__).parameters
     extras = {k: v for k, v in hp.items() if k in aceitos and k not in ("n_classes", "n_mfcc", "n_frames")}
-    model = cls(n_classes=hp["n_classes"], n_mfcc=hp["n_mfcc"], n_frames=hp["n_frames"], **extras)
+    if hp.get("entrada") == "onda":
+        #Áudio cru (B, 1, 16000): a rede da família vem atrás de uma frente que faz o papel do MFCC (modelos/onda.py)
+        from modelos.onda import embrulhar_onda
+        model = embrulhar_onda(cls, hp, extras)
+    else:
+        model = cls(n_classes=hp["n_classes"], n_mfcc=hp["n_mfcc"], n_frames=hp["n_frames"], **extras)
     #Guardado no modelo para a contagem de MACs saber o formato da entrada
     model.formato_entrada = (hp["n_mfcc"], hp["n_frames"])
     return model
