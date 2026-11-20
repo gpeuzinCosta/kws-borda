@@ -23,7 +23,7 @@ NOMES = [m["nome"] for m in listar_modelos()]
 def test_config_mescla_base_e_modelo():
     hp = carregar_config("mlp", epocas=1)
     assert hp["modelo"] == "mlp" and hp["epocas"] == 1 and hp["n_mfcc"] == 10    #o MLP usa o MFCC hello_edge
-    assert carregar_config("dscnn", epocas=1)["n_mfcc"] == 10 and carregar_config("atencao", epocas=1)["n_mfcc"] == 40
+    assert carregar_config("dscnn", epocas=1)["n_mfcc"] == 10 and carregar_config("atencao", epocas=1)["n_mfcc"] == 10
     assert hp["n_classes"] == 35 and carregar_config("mlp", tarefa="gsc12")["n_classes"] == 12
 
 
@@ -159,6 +159,13 @@ def test_cnn1d_vencedora_nos_padroes():
     hp = carregar_config("cnn1d")
     assert (hp["n_mfcc"], hp["n_frames"], hp["canais"]) == (10, 49, 48)
     assert custo(criar_modelo("cnn1d", hp))["params"] == 24275     #o número da varredura do playground
+
+
+def test_vencedores_da_secao_8_nos_padroes():
+    """MLP, DS-CNN e Atenção usam o vencedor da varredura (§8.1, §8.4, §8.5): o número de parâmetros da tabela."""
+    assert custo(criar_modelo("mlp", carregar_config("mlp")))["params"] == 42019
+    assert custo(criar_modelo("dscnn", carregar_config("dscnn")))["params"] == 15443
+    assert custo(criar_modelo("atencao", carregar_config("atencao")))["params"] == 41251
 
 
 def test_resnet_vencedora_nos_padroes():

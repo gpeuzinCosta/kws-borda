@@ -78,35 +78,33 @@ HYPERPARAMETERS = {
 
 #Só o que MUDA em cada modelo
 HP_MODELOS = {
-    #MLP — baseline: achata o MFCC e passa por camadas densas.
-    #Versão do Luciano (notebooks/experimentos/Projeto_MLP.ipynb, 79,6% val em gsc12 + MFCC hello_edge)
-    'mlp': {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False,       #MFCC hello_edge: 10 x 49
-            'hidden': 128, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False},
+    #Todas as famílias usam o VENCEDOR da sua varredura (§8): o MENOR modelo (parâmetros, depois MACs) até 2 p.p. abaixo
+    #do baseline 40x101 na validação. Números da §8 (normalização por amostra, early stop 50/5, 3 seeds)
 
-    #CNN 1D — vencedora da varredura (playground_cnn1d_guilherme.ipynb, 13 configurações x 3 seeds, GSC completo):
-    #o MENOR modelo a menos de 2 p.p. (validação) do baseline 40x101 + 64 canais.
-    #hello_edge + canais 48: 24.275 params (23,7 KB int8), 383.280 MACs, acc val 92,46 ± 0,13% (baseline 93,51 ± 0,06%)
-    'cnn1d': {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False,     #MFCC hello_edge: 10 x 49
+    #MLP (§8.1): hello_edge + hidden 64. 42.019 params (41,0 KB int8), 41.792 MACs,
+    #acc val 72,54 ± 2,04% (baseline 74,17 ± 0,58%, −1,64 p.p.). Nenhum MLP passa da acurácia mínima de 90%
+    'mlp': {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False,     #MFCC hello_edge: 10 x 49
+            'hidden': 64, 'n_camadas': 3, 'dropout': 0.1, 'batchnorm': False},
+
+    #CNN 1D (§8.2): hello_edge + canais 48. 24.275 params (23,7 KB int8), 383.280 MACs,
+    #acc val 92,09 ± 0,24% (baseline 93,82 ± 0,10%, −1,73 p.p.)
+    'cnn1d': {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False,   #MFCC hello_edge: 10 x 49
               'canais': 48},
 
-    #ResNet — vencedora da varredura (playground_resnet_guilherme.ipynb, 15 configurações x 3 seeds, GSC completo):
-    #o MENOR modelo a menos de 2 p.p. (validação) do baseline res8 40x101.
-    #res15-narrow + hello_edge: 43.640 params (42,6 KB int8), 20.780.585 MACs, acc val 94,88 ± 0,09% (baseline 95,82 ± 0,03%)
-    'resnet': {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False,    #MFCC hello_edge: 10 x 49
-               'canais': 19, 'n_blocos': 6, 'pool': None, 'dilatacao': True, 'conv_extra': True},
+    #ResNet (§8.3): res15-narrow + hello_edge. 43.640 params (42,6 KB int8), 20.780.585 MACs,
+    #acc val 94,24 ± 0,32% (baseline res8 95,31 ± 0,27%, −1,07 p.p.)
+    'resnet': {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False,  #MFCC hello_edge: 10 x 49
+               'canais': 19, 'n_blocos': 6, 'pool': None, 'dilatacao': True, 'conv_extra': True},   #res15-narrow
 
-    #DS-CNN (Hello Edge, Zhang et al. 2017) — convoluções separáveis em profundidade
-    'dscnn': {
-        'n_mfcc': 10,
-        'janela_ms': 40,
-        'passo_ms': 20,
-        'center': False,
-        'canais': 64,
-        'n_blocos': 4
-    },
+    #DS-CNN (§8.4, DS-CNN-S do Hello Edge): hello_edge + canais 48. 15.443 params (15,1 KB int8), 1.609.680 MACs,
+    #acc val 92,40 ± 0,33% (baseline 94,08 ± 0,36%, −1,68 p.p.)
+    'dscnn': {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False,   #MFCC hello_edge: 10 x 49
+              'canais': 48, 'n_blocos': 4},
 
-    #Atenção — KWT-tiny (Berg et al. 2021): cada frame do MFCC vira um token
-    'atencao': {'d_model': 64, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0,
+    #Atenção (§8.5, KWT: cada janela do MFCC vira um token): hello_edge + d_model 32. 41.251 params (40,3 KB int8),
+    #1.860.000 MACs, acc val 92,22 ± 0,15% (baseline 40x101 + d_model 64 92,50 ± 1,37%, −0,28 p.p.)
+    'atencao': {'n_mfcc': 10, 'janela_ms': 40, 'passo_ms': 20, 'center': False, #MFCC hello_edge: 10 x 49 (49 tokens)
+                'd_model': 32, 'n_camadas': 3, 'n_heads': 1, 'dropout': 0,
                 'learning_rate': 0.001},     #Transformers costumam pedir lr menor
 }
 
