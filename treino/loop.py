@@ -234,13 +234,30 @@ def _salvar_run(model, hp, hist, seed, pasta_runs, nome_run=None):
     return pasta
 
 
+def mesma_arquitetura(hp_run, hp):
+    """O run salvo tem a mesma arquitetura e a mesma entrada (os mesmos tensores de pesos)?
+
+    O nome da pasta só tem o modelo, o formato do MFCC e a normalização: o MLP de 128 e o de 64 neurônios caem na
+    mesma pasta. Sem esta conferência, o load_state_dict quebraria (ou, pior, carregaria a configuração errada).
+    """
+    from modelos import arquitetura
+    nome = hp["modelo"]
+    return hp_run.get("modelo", nome) == nome and arquitetura(nome, hp_run) == arquitetura(nome, hp)
+
+
 def carregar_run(pasta_runs, hp, seed, nome_run=None):
-    """Procura o run mais recente do mesmo modelo (e configuração) e seed. Devolve (state_dict, hist, hp) ou None."""
+    """Procura o run mais recente do mesmo modelo, configuração e seed. Devolve (state_dict, hist, hp) ou None.
+
+    Pula os runs de outra arquitetura (ex.: depois de trocar o hp_modelos pelo vencedor da varredura).
+    """
     candidatos = sorted(Path(pasta_runs).glob(f"{_prefixo_run(hp, nome_run)}_s{seed}_*"))
-    if not candidatos:
-        return None
-    pasta = candidatos[-1]
-    estado = torch.load(pasta / "melhor.pt", map_location="cpu")
-    hist = json.load(open(pasta / "hist.json"))
-    hp = yaml.safe_load(open(pasta / "config.yaml"))
-    return estado, hist, hp
+    for pasta in reversed(candidatos):
+        if not (pasta / "melhor.pt").exists():
+            continue
+        hp_run = yaml.safe_load(open(pasta / "config.yaml"))
+        if not mesma_arquitetura(hp_run, hp):
+            continue
+        estado = torch.load(pasta / "melhor.pt", map_location="cpu")
+        hist = json.load(open(pasta / "hist.json"))
+        return estado, hist, hp_run
+    return None

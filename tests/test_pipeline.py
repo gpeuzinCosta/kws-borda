@@ -111,6 +111,10 @@ def test_treino_e_avaliacao_de_ponta_a_ponta(tmp_path):
     assert (tmp_path / hist["pasta"].split("/")[-1] / "melhor.pt").exists()
     assert hist["melhor_epoca"] in (1, 2) and "gap" in hist
     assert carregar_run(tmp_path, hp, 0) is not None and carregar_run(tmp_path, hp, 0, nome_run="outro") is None
+    #Mesma pasta (mesmo modelo, entrada e normalização), arquitetura diferente: não pode carregar
+    hp_menor = {**hp, "hidden": hp["hidden"] // 2}
+    assert carregar_run(tmp_path, hp_menor, 0) is None
+    assert carregar_run(tmp_path, {**hp, "learning_rate": 0.5}, 0) is not None   #treino diferente, pesos iguais
 
 
 def test_early_stop_para_antes_do_teto():

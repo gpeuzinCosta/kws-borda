@@ -62,6 +62,25 @@ def criar_modelo(nome, hp):
     return model
 
 
+#Hiperparâmetros da ENTRADA que mudam o formato do que chega na rede (e os pesos da frente, no áudio cru)
+CHAVES_ENTRADA = ("entrada", "n_mfcc", "n_frames", "n_mels", "janela_ms", "passo_ms", "center", "n_classes",
+                  "onda_frente", "onda_filtros", "onda_janela_ms", "onda_passo_ms", "onda_center")
+
+
+def arquitetura(nome, hp):
+    """O que define os pesos do modelo `nome`: os argumentos do __init__ (com o padrão quando faltam) e a entrada.
+
+    Dois hp com a mesma arquitetura geram modelos com os mesmos tensores; serve para não carregar do Drive um treino
+    de outra configuração (ex.: MLP de 128 neurônios no lugar do de 64).
+    """
+    _importar_todos()
+    params = inspect.signature(MODELOS[nome].__init__).parameters
+    arq = {k: hp.get(k, p.default) for k, p in params.items()
+           if k != "self" and p.kind not in (p.VAR_KEYWORD, p.VAR_POSITIONAL)}
+    arq.update({k: hp.get(k) for k in CHAVES_ENTRADA})
+    return arq
+
+
 def esta_implementado(nome):
     _importar_todos()
     return getattr(MODELOS[nome], "IMPLEMENTADO", True)
